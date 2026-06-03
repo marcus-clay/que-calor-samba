@@ -24,7 +24,32 @@ html, body {
   -webkit-font-smoothing: antialiased; overflow: hidden;
   touch-action: manipulation;
 }
-#app { display: flex; flex-direction: column; height: 100vh; }
+#app { display: none; flex-direction: column; height: 100vh; }
+
+/* ── BIBLIOTHÈQUE (Index) ── */
+#libView { display: flex; flex-direction: column; height: 100vh; }
+#libHeader { flex-shrink: 0; display: flex; align-items: center; padding: 22px 16px 14px; gap: 12px; }
+#libHeader .lib-title h1 { font-size: 20px; font-weight: 800; }
+#libHeader .lib-title .sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+#libHeader .spacer { flex: 1; }
+#libAddBtn { height: 36px; padding: 0 16px; border-radius: 8px; border: none; background: rgb(224,56,70); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 12px rgba(224,56,70,0.35); transition: transform 0.1s; }
+#libAddBtn:active { transform: scale(0.97); }
+#libDrop { margin: 0 16px 16px; border: 1.5px dashed var(--border2); border-radius: 12px; padding: 18px; text-align: center; color: var(--mid); font-size: 12px; line-height: 1.5; transition: border-color 0.15s, background 0.15s, color 0.15s; }
+#libDrop.busy { border-color: rgb(224,56,70); color: var(--text); }
+#libDrop.over { border-color: rgb(68,136,236); background: rgba(68,136,236,0.06); color: var(--text); }
+#libGrid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 12px; padding: 0 16px 24px; align-content: start; }
+.lib-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; cursor: pointer; position: relative; transition: border-color 0.15s, transform 0.1s; }
+.lib-card:hover { border-color: var(--border2); }
+.lib-card:active { transform: scale(0.99); }
+.lib-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
+.lib-meta { font-size: 10px; color: var(--mid); display: flex; flex-direction: column; gap: 3px; }
+.lib-badge { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
+.lib-card.demo { border-color: rgba(224,56,70,0.35); }
+.lib-card .del { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border: none; background: transparent; color: var(--dim); cursor: pointer; font-size: 12px; border-radius: 5px; line-height: 1; }
+.lib-card .del:hover { color: #e83a4a; background: rgba(232,58,74,0.12); }
+#libFile { display: none; }
+#backBtn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border2); background: transparent; color: var(--mid); font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+#backBtn:active { color: var(--text); }
 
 /* ── TOP BAR ── */
 #topbar {
@@ -258,9 +283,23 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 </style>
 </head>
 <body>
+<!-- ÉCRAN BIBLIOTHÈQUE (Index) -->
+<div id="libView">
+  <div id="libHeader">
+    <div class="lib-title"><h1>Que Calor</h1><span class="sub">Bibliothèque · Samba-Reggae</span></div>
+    <div class="spacer"></div>
+    <button id="libAddBtn">+ Ajouter un morceau</button>
+  </div>
+  <div id="libDrop"><div class="lib-drop-inner">Dépose un fichier audio, ou clique « Ajouter ». Il sera analysé (tempo, grille, sections).</div></div>
+  <div id="libGrid"></div>
+  <input type="file" id="libFile" accept="audio/*">
+</div>
+
+<!-- ÉCRAN PARTITION -->
 <div id="app">
   <div id="topbar">
-    <div class="title-stack"><h1>Que Calor</h1><span class="sub">Samba-Reggae · 120 BPM</span></div>
+    <button id="backBtn" title="Retour à la bibliothèque">←</button>
+    <div class="title-stack"><h1>Que Calor</h1><span class="sub">Samba-Reggae</span></div>
     <div class="solo-group"></div>
     <div class="spacer"></div>
     <div id="secPill">INTRO</div>
@@ -382,18 +421,14 @@ async function loadAudioBuffer(arrayBuffer) {
   }
 }
 
-// Try same-folder file first (works when deployed with audio alongside)
-fetch('MASTER_4_QUE_CALOR.m4a')
-  .then(r => { if(!r.ok) throw new Error(); return r.arrayBuffer(); })
-  .then(ab => loadAudioBuffer(ab))
-  .catch(() => setStatus('', 'Aucun audio chargé — visuels seuls'));
+// L'audio de la démo se charge à l'ouverture de sa carte (loadDemoAudio).
 
 // File input
 const fileInput = document.getElementById('fileInput');
 document.getElementById('loadBtn').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
-  f.arrayBuffer().then(ab => handleUserAudio(ab, f.name));
+  ingestFile(f);
 });
 
 // Drag & drop (works on desktop + Android Chrome)
@@ -404,7 +439,7 @@ document.addEventListener('dragleave', e => { if(!e.relatedTarget) dragOverlay.c
 document.addEventListener('drop', e => {
   e.preventDefault(); dragOverlay.classList.remove('active');
   const f = e.dataTransfer.files[0]; if (!f) return;
-  f.arrayBuffer().then(ab => handleUserAudio(ab, f.name));
+  ingestFile(f);
 });
 
 /* ── PLAYBACK ENGINE ────────────────────────── */
@@ -827,25 +862,6 @@ async function analyzeAudio(audioBuffer, forcedBpm){
   return { D:{ tempo:bpm, duration:+dur.toFixed(1), n:beat_times.length, beat_times, sections, beats }, mono, onsetByBand, global, fr, dur };
 }
 
-/* ── INGESTION : upload utilisateur → analyse → partition ── */
-async function handleUserAudio(arrayBuffer, name){
-  setStatus('loading','Décodage…');
-  let buf;
-  try { buf = await getCtx().decodeAudioData(arrayBuffer); }
-  catch(e){ setStatus('err','Erreur de décodage — essaie un autre format'); return; }
-  audioBuffer = buf;
-  setStatus('loading','Analyse en cours… ⏳ tempo · grille · sections');
-  await new Promise(r=>requestAnimationFrame(()=>r())); // laisse le statut se peindre avant le calcul lourd
-  try {
-    const res = await analyzeAudio(buf);
-    lastAnalysis = res;
-    buildScore(res.D);
-    setBpmUI(res.D.tempo, true);
-    document.getElementById('demoBtn').style.display='';
-    document.getElementById('loadBtn').textContent = '✓ '+(name?name.replace(/\.[^.]+$/,'').slice(0,16):'Chargé');
-    setStatus('ok', `Analysé · ${(buf.duration/60).toFixed(1)} min · ~${Math.round(res.D.tempo)} BPM · frappes = brouillon, à valider en édition`);
-  } catch(e){ console.error(e); setStatus('err','Analyse impossible — voir la console'); }
-}
 // Recalcule la grille depuis les enveloppes en cache (pas de re-filtrage), sur correction de tempo
 function reanalyzeBpm(bpm){
   if(!lastAnalysis || !(bpm>20 && bpm<400)) return;
@@ -855,6 +871,7 @@ function reanalyzeBpm(bpm){
   const sections=detectSections(a.mono,A_SR,beat_times,a.dur);
   buildScore({tempo:bpm,duration:+a.dur.toFixed(1),n:beat_times.length,beat_times,sections,beats});
   setBpmUI(bpm,true);
+  saveCurrent();
 }
 
 /* ── CONTRÔLES BPM + RETOUR DÉMO ── */
@@ -870,6 +887,104 @@ demoBtn.addEventListener('click',()=>{
     .then(b=>{audioBuffer=b;setStatus('ok','Démo Que Calor · analyse de référence');})
     .catch(()=>setStatus('','Démo Que Calor · audio indisponible'));
 });
+
+/* ── BIBLIOTHÈQUE + PERSISTANCE LOCALE (Phase 3) ──
+   IndexedDB stocke chaque morceau (audio + analyse D). Deux écrans : Index (cartes)
+   et Partition. Étape de dev vers le backend partagé (Phase 4). */
+const DB_NAME='quecalor', STORE='tracks';
+function idbOpen(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,1); r.onupgradeneeded=()=>r.result.createObjectStore(STORE,{keyPath:'id'}); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function idbPut(t){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(t); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+async function idbAll(){ const db=await idbOpen(); return new Promise((res,rej)=>{ const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error); }); }
+async function idbGet(id){ const db=await idbOpen(); return new Promise((res,rej)=>{ const rq=db.transaction(STORE,'readonly').objectStore(STORE).get(id); rq.onsuccess=()=>res(rq.result); rq.onerror=()=>rej(rq.error); }); }
+async function idbDel(id){ const db=await idbOpen(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(id); tx.oncomplete=()=>res(); tx.onerror=()=>rej(tx.error); }); }
+
+const DROP_TEXT='Dépose un fichier audio, ou clique « Ajouter ». Il sera analysé (tempo, grille, sections).';
+let currentTrackId=null;
+const libView=document.getElementById('libView');
+const appView=document.getElementById('app');
+function showLib(){ libView.style.display='flex'; appView.style.display='none'; }
+function showPartition(){ libView.style.display='none'; appView.style.display='flex'; }
+function setPartTitle(name){ const h=document.querySelector('#topbar .title-stack h1'); if(h) h.textContent=name; }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function makeCard(t){
+  const c=document.createElement('div'); c.className='lib-card'+(t._demo?' demo':'');
+  const dur=Math.round(t.durationSec||0), mm=Math.floor(dur/60), ss=String(dur%60).padStart(2,'0');
+  c.innerHTML=`<h3>${escapeHtml(t.title)}</h3><div class="lib-meta"><span>${mm}:${ss} · ${t.bpm||'?'} BPM</span><span class="lib-badge">${t._demo?'analyse de référence':'analyse navigateur'}</span></div>`;
+  c.addEventListener('click',()=>openTrack(t.id));
+  if(!t._demo){
+    const d=document.createElement('button'); d.className='del'; d.textContent='🗑'; d.title='Supprimer';
+    d.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Supprimer « '+t.title+' » ?')) idbDel(t.id).then(renderLibrary); });
+    c.appendChild(d);
+  }
+  return c;
+}
+async function renderLibrary(){
+  const grid=document.getElementById('libGrid'); grid.innerHTML='';
+  grid.appendChild(makeCard({id:'demo', title:'Que Calor', durationSec:DEMO.duration, bpm:Math.round(DEMO.tempo), _demo:true}));
+  let tracks=[]; try{ tracks=await idbAll(); }catch(e){ console.error(e); }
+  tracks.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  tracks.forEach(t=>grid.appendChild(makeCard(t)));
+}
+
+function openTrackFresh(track, buf, res){
+  currentTrackId=track.id; lastAnalysis=res; audioBuffer=buf;
+  buildScore(track.D); setBpmUI(track.bpm,true); demoBtn.style.display='none';
+  setPartTitle(track.title); showPartition();
+  setStatus('ok', `Analysé · ${track.bpm} BPM · frappes = brouillon, à valider en édition`);
+}
+async function openTrack(id){
+  if(id==='demo'){
+    currentTrackId='demo'; lastAnalysis=null;
+    buildScore(DEMO); setBpmUI(0,false); demoBtn.style.display='none';
+    setPartTitle('Que Calor'); showPartition(); loadDemoAudio(); return;
+  }
+  const t=await idbGet(id); if(!t) return;
+  currentTrackId=id; lastAnalysis=null;
+  buildScore(t.D); setBpmUI(0,false); demoBtn.style.display='none';
+  setPartTitle(t.title); showPartition();
+  setStatus('loading','Décodage de l\'audio…');
+  try{ const ab=await t.audioBlob.arrayBuffer(); audioBuffer=await getCtx().decodeAudioData(ab); setStatus('ok', t.title+' · prêt'); }
+  catch(e){ audioBuffer=null; setStatus('err','Audio illisible'); }
+}
+function loadDemoAudio(){
+  setStatus('loading','Chargement de la démo…');
+  fetch('MASTER_4_QUE_CALOR.m4a').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>getCtx().decodeAudioData(ab))
+    .then(b=>{audioBuffer=b;setStatus('ok','Démo Que Calor · analyse de référence');})
+    .catch(()=>setStatus('','Démo · audio indisponible'));
+}
+async function saveCurrent(){
+  if(!currentTrackId || currentTrackId==='demo') return;
+  try{ const t=await idbGet(currentTrackId); if(!t) return; t.D=D; t.bpm=Math.round(D.tempo); await idbPut(t); }catch(e){ console.error(e); }
+}
+
+async function ingestFile(file){
+  if(!file) return;
+  const drop=document.getElementById('libDrop'), inner=drop.querySelector('.lib-drop-inner');
+  drop.classList.add('busy'); inner.textContent='Analyse de « '+file.name+' »… ⏳';
+  try{
+    const ab=await file.arrayBuffer();
+    const buf=await getCtx().decodeAudioData(ab.slice(0));
+    await new Promise(r=>requestAnimationFrame(()=>r()));
+    const res=await analyzeAudio(buf);
+    const track={ id:'t_'+Date.now(), title:file.name.replace(/\.[^.]+$/,'').slice(0,40), createdAt:Date.now(), durationSec:buf.duration, bpm:Math.round(res.D.tempo), D:res.D, audioBlob:file };
+    await idbPut(track);
+    await renderLibrary();
+    drop.classList.remove('busy'); inner.textContent=DROP_TEXT;
+    openTrackFresh(track, buf, res);
+  }catch(e){ console.error(e); drop.classList.remove('busy'); inner.textContent='Échec de l\'analyse — essaie un autre format.'; }
+}
+
+// Wiring bibliothèque
+document.getElementById('libAddBtn').addEventListener('click',()=>document.getElementById('libFile').click());
+document.getElementById('libFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(f) ingestFile(f); e.target.value=''; });
+document.getElementById('backBtn').addEventListener('click',async()=>{ if(playing)stopPlay(); if(editMode)setEditMode(false); await saveCurrent(); showLib(); renderLibrary(); });
+(function(){
+  const ld=document.getElementById('libDrop');
+  ld.addEventListener('dragover',e=>{e.preventDefault();ld.classList.add('over');});
+  ld.addEventListener('dragleave',()=>ld.classList.remove('over'));
+  ld.addEventListener('drop',e=>{e.preventDefault();ld.classList.remove('over');const f=e.dataTransfer.files[0];if(f)ingestFile(f);});
+})();
 
 /* ── ÉDITEUR DE VALIDATION (Phase 1) ──────────── */
 /*
@@ -890,6 +1005,7 @@ function setEditMode(on) {
   expBtn.style.display = on ? '' : 'none';
   if (on && playing) stopPlay();
   if (on) setStatus('ok', 'Édition : clic sur une case pour cycler repos → medium → accent');
+  else { saveCurrent(); setStatus('ok', 'Corrections enregistrées'); }
 }
 editBtn.addEventListener('click', () => setEditMode(!editMode));
 
@@ -916,7 +1032,9 @@ expBtn.addEventListener('click', () => {
   console.log('beats =', json);
 });
 
-buildScore(DEMO);
+/* ── BOOTSTRAP : on ouvre sur la bibliothèque ── */
+renderLibrary();
+showLib();
 </script>
 </body>
 </html>
