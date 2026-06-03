@@ -57,6 +57,11 @@ html, body {
 .lib-card.demo { border-color: rgba(224,56,70,0.35); }
 .lib-card .del { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border: none; background: transparent; color: var(--dim); cursor: pointer; font-size: 12px; border-radius: 5px; line-height: 1; }
 .lib-card .del:hover { color: #e83a4a; background: rgba(232,58,74,0.12); }
+.card-pv { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
+.pv-btn { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border2); background: transparent; color: var(--text); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding-left: 1px; }
+.pv-btn:hover { border-color: var(--mid); }
+.pv-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+.pv-fill { height: 100%; width: 0; background: rgb(224,56,70); border-radius: 2px; pointer-events: none; }
 #libFile { display: none; }
 #backBtn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border2); background: transparent; color: var(--mid); font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 #backBtn:active { color: var(--text); }
@@ -984,8 +989,20 @@ function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
 function makeCard(t){
   const c=document.createElement('div'); c.className='lib-card'+(t._demo?' demo':'');
   const dur=Math.round(t.durationSec||0), mm=Math.floor(dur/60), ss=String(dur%60).padStart(2,'0');
+  const audioUrl = t._demo ? 'MASTER_4_QUE_CALOR.m4a' : t.audioUrl;
   c.innerHTML=`<h3>${escapeHtml(t.title)}</h3><div class="lib-meta"><span>${mm}:${ss} · ${t.bpm||'?'} BPM</span><span class="lib-badge">${t._demo?'analyse de référence':'analyse navigateur'}</span></div>`;
-  c.addEventListener('click',()=>openTrack(t.id));
+  // Pré-écoute inline (n'ouvre pas la partition)
+  if (audioUrl) {
+    const pv=document.createElement('div'); pv.className='card-pv';
+    pv.innerHTML=`<button class="pv-btn" aria-label="Pré-écoute">▶</button><div class="pv-bar"><div class="pv-fill"></div></div>`;
+    pv.addEventListener('click',e=>e.stopPropagation());
+    const btn=pv.querySelector('.pv-btn'), bar=pv.querySelector('.pv-bar'), fill=pv.querySelector('.pv-fill');
+    pvRefs[t.id]={btn,fill};
+    btn.addEventListener('click',e=>{ e.stopPropagation(); togglePreview(t.id, audioUrl, btn); });
+    bar.addEventListener('click',e=>{ e.stopPropagation(); seekPreview(t.id, e, bar); });
+    c.appendChild(pv);
+  }
+  c.addEventListener('click',()=>{ stopPreview(); openTrack(t.id); });
   if(!t._demo){
     const d=document.createElement('button'); d.className='del'; d.textContent='🗑'; d.title='Supprimer';
     d.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Supprimer « '+t.title+' » ?')) apiDel(t.id).then(renderLibrary); });
@@ -993,11 +1010,39 @@ function makeCard(t){
   }
   return c;
 }
+/* ── PRÉ-ÉCOUTE (lecteur inline sur les cartes) ── */
+const previewAudio = new Audio(); previewAudio.preload = 'none';
+let pvCurrent = null, pvRefs = {};
+previewAudio.addEventListener('timeupdate', () => {
+  const r = pvRefs[pvCurrent];
+  if (r && previewAudio.duration) r.fill.style.width = (previewAudio.currentTime / previewAudio.duration * 100) + '%';
+});
+previewAudio.addEventListener('ended', () => {
+  const r = pvRefs[pvCurrent]; if (r) { r.btn.textContent = '▶'; r.fill.style.width = '0%'; } pvCurrent = null;
+});
+function stopPreview(){ if (!previewAudio.paused) previewAudio.pause(); const r = pvRefs[pvCurrent]; if (r) r.btn.textContent = '▶'; }
+function togglePreview(id, url, btn){
+  if (pvCurrent === id) {
+    if (previewAudio.paused) { previewAudio.play().catch(()=>{}); btn.textContent = '⏸'; }
+    else { previewAudio.pause(); btn.textContent = '▶'; }
+    return;
+  }
+  const prev = pvRefs[pvCurrent]; if (prev) { prev.btn.textContent = '▶'; prev.fill.style.width = '0%'; }
+  pvCurrent = id; previewAudio.src = url; previewAudio.currentTime = 0;
+  previewAudio.play().catch(()=>{}); btn.textContent = '⏸';
+}
+function seekPreview(id, e, bar){
+  if (pvCurrent !== id || !previewAudio.duration) return;
+  const rect = bar.getBoundingClientRect();
+  previewAudio.currentTime = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * previewAudio.duration;
+}
+
 async function renderLibrary(){
   let tracks;
   try{ tracks=await apiList(); }catch(e){ console.error(e); tracks=[]; }
   if(tracks===null) return false; // 401 → login affiché
   serverTracks = tracks;
+  stopPreview(); pvRefs = {}; pvCurrent = null;
   const grid=document.getElementById('libGrid'); grid.innerHTML='';
   grid.appendChild(makeCard({id:'demo', title:'Que Calor', durationSec:DEMO.duration, bpm:Math.round(DEMO.tempo), _demo:true}));
   tracks.forEach(t=>grid.appendChild(makeCard(t)));
