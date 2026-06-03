@@ -69,13 +69,19 @@ html, body {
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 #audioStatusText { color: var(--mid); }
 .spacer-sm { flex: 1; }
-#loadBtn, #editBtn, #expBtn {
+#loadBtn, #editBtn, #expBtn, #demoBtn {
   height: 22px; padding: 0 12px; border-radius: 4px;
   border: 1px solid var(--border2); background: transparent;
   font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
   color: var(--mid); cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
-#loadBtn:hover, #editBtn:hover, #expBtn:hover { color: var(--text); border-color: var(--mid); }
+#loadBtn:hover, #editBtn:hover, #expBtn:hover, #demoBtn:hover { color: var(--text); border-color: var(--mid); }
+#bpmBox { display: flex; align-items: center; gap: 4px; }
+#bpmBox.hidden { display: none; }
+#bpmVal { font-size: 11px; font-weight: 700; color: var(--text); min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
+.bpm-unit { font-size: 8px; color: var(--dim); font-weight: 700; letter-spacing: 0.5px; }
+#bpmBox button { height: 20px; padding: 0 7px; border-radius: 4px; border: 1px solid var(--border2); background: transparent; color: var(--mid); font-size: 9px; font-weight: 700; cursor: pointer; }
+#bpmBox button:hover { color: var(--text); border-color: var(--mid); }
 #editBtn.on { color: #22c4a0; border-color: #22c4a0; }
 body.editing .cell { cursor: pointer; }
 body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-offset: -1px; }
@@ -267,6 +273,8 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
       <span id="audioStatusText">Aucun audio chargé — visuels seuls</span>
     </div>
     <div class="spacer-sm"></div>
+    <div id="bpmBox" class="hidden"><button id="bpmHalf">÷2</button><span id="bpmVal">—</span><span class="bpm-unit">BPM</span><button id="bpmDbl">×2</button></div>
+    <button id="demoBtn" style="display:none">↺ Démo</button>
     <button id="expBtn" style="display:none">⧉ Copier les patterns</button>
     <button id="editBtn">✏️ Éditer</button>
     <button id="loadBtn">📂 Charger l'audio</button>
@@ -305,8 +313,8 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 <div id="dragOverlay">
   <div id="dragBox">
     <div class="icon">🎵</div>
-    <div class="label">Dépose le fichier audio ici</div>
-    <div class="hint">MASTER_4_QUE_CALOR.m4a</div>
+    <div class="label">Dépose un fichier audio ici</div>
+    <div class="hint">il sera analysé : tempo, grille, sections</div>
   </div>
   <div id="dragCancel">Annuler</div>
 </div>
@@ -385,7 +393,7 @@ const fileInput = document.getElementById('fileInput');
 document.getElementById('loadBtn').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
-  f.arrayBuffer().then(ab => loadAudioBuffer(ab));
+  f.arrayBuffer().then(ab => handleUserAudio(ab, f.name));
 });
 
 // Drag & drop (works on desktop + Android Chrome)
@@ -396,7 +404,7 @@ document.addEventListener('dragleave', e => { if(!e.relatedTarget) dragOverlay.c
 document.addEventListener('drop', e => {
   e.preventDefault(); dragOverlay.classList.remove('active');
   const f = e.dataTransfer.files[0]; if (!f) return;
-  f.arrayBuffer().then(ab => loadAudioBuffer(ab));
+  f.arrayBuffer().then(ab => handleUserAudio(ab, f.name));
 });
 
 /* ── PLAYBACK ENGINE ────────────────────────── */
@@ -709,6 +717,158 @@ document.addEventListener('keydown',e=>{
   if(e.code==='ArrowRight')jumpTo(clampToFocus(lastBeat+BPB*4));
   if(e.code==='ArrowLeft')jumpTo(clampToFocus(lastBeat-BPB*4));
   if(e.code==='Home'){jumpTo(focus?focus.start:0);if(playing)stopPlay();}
+});
+
+/* ── ANALYSE D'ALIGNEMENT (Phase 2) ──────────────
+   Calcule tempo + grille de beats + sections depuis l'audio (cale les patterns).
+   Les frappes par bande sont un BROUILLON à valider, jamais une vérité.
+   Tout en navigateur : OfflineAudioContext pour le rendu, biquad maison par bande. */
+const A_SR = 22050, A_HOP = 256;
+const A_BANDS = { marcacao:[30,110], doubles:[110,250], coupes:[250,650], repinike:[650,3500], caixas:[3500,10000] };
+
+async function toMono(audioBuffer){
+  const len = Math.max(1, Math.ceil(audioBuffer.duration * A_SR));
+  const oac = new OfflineAudioContext(1, len, A_SR);
+  const src = oac.createBufferSource(); src.buffer = audioBuffer; src.connect(oac.destination); src.start();
+  const r = await oac.startRendering();
+  return r.getChannelData(0);
+}
+// Passe-bande RBJ (Direct Form I), gain crête 0 dB
+function biquadBP(x, sr, f0, Q){
+  const w0=2*Math.PI*f0/sr, c=Math.cos(w0), s=Math.sin(w0), al=s/(2*Q);
+  const a0=1+al, b0=al/a0, b2=-al/a0, a1=-2*c/a0, a2=(1-al)/a0;
+  const y=new Float32Array(x.length); let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<x.length;i++){const xi=x[i]; const yi=b0*xi+b2*x2-a1*y1-a2*y2; x2=x1;x1=xi;y2=y1;y1=yi;y[i]=yi;}
+  return y;
+}
+// Enveloppe d'onsets : flux d'énergie log positif par trame
+function onsetEnv(sig, hop){
+  const n=Math.floor(sig.length/hop), e=new Float32Array(n);
+  for(let i=0;i<n;i++){let s=0;const off=i*hop;for(let j=0;j<hop;j++){const v=sig[off+j]||0;s+=v*v;}e[i]=Math.log(1e-7+s/hop);}
+  const o=new Float32Array(n);
+  for(let i=1;i<n;i++) o[i]=Math.max(0, e[i]-e[i-1]);
+  return o;
+}
+function normalize(a){let m=0;for(let i=0;i<a.length;i++)if(a[i]>m)m=a[i];if(m>0)for(let i=0;i<a.length;i++)a[i]/=m;return a;}
+function smooth(a,r){const n=a.length,o=new Float32Array(n);for(let i=0;i<n;i++){let s=0,c=0;for(let j=-r;j<=r;j++){const k=i+j;if(k>=0&&k<n){s+=a[k];c++;}}o[i]=s/c;}return o;}
+function beatIndexAt(BTs,t){if(t<=BTs[0])return 0;let lo=0,hi=BTs.length-1;while(lo<hi){const m=(lo+hi+1)>>1;BTs[m]<=t?lo=m:hi=m-1;}return lo;}
+
+// Tempo par autocorrélation de l'enveloppe globale, biais doux vers ~120 BPM
+function detectTempo(env, fr, minB=70, maxB=170){
+  const lagMin=Math.round(60/maxB*fr), lagMax=Math.round(60/minB*fr);
+  let best=lagMin, bestV=-1;
+  for(let lag=lagMin; lag<=lagMax; lag++){
+    let s=0; for(let i=lag;i<env.length;i++) s+=env[i]*env[i-lag];
+    const bpm=60*fr/lag; s*=Math.exp(-0.5*Math.pow(Math.log(bpm/120)/0.45,2));
+    if(s>bestV){bestV=s;best=lag;}
+  }
+  return 60*fr/best;
+}
+// Grille régulière : période fixe, phase qui maximise la somme peigne sur l'enveloppe
+function beatGrid(env, fr, bpm, dur){
+  const period=60/bpm*fr; const P=Math.max(1,Math.round(period));
+  let bestPhase=0, bestV=-1;
+  for(let phase=0; phase<P; phase++){
+    let s=0; for(let k=0;;k++){const idx=Math.round(phase+k*period); if(idx>=env.length)break; s+=env[idx];}
+    if(s>bestV){bestV=s;bestPhase=phase;}
+  }
+  const times=[]; for(let k=0;;k++){const t=(bestPhase+k*period)/fr; if(t>dur)break; times.push(+t.toFixed(4));}
+  return times.length?times:[0];
+}
+// Brouillon de frappes par bande : énergie max autour de chaque beat, seuils par percentile
+function bandHitsDraft(onsetByBand, BTs, fr){
+  const beats={};
+  for(const key in onsetByBand){
+    const env=onsetByBand[key];
+    const str=BTs.map(t=>{const c=t*fr,w=Math.round(0.05*fr);let m=0;for(let f=Math.round(c-w);f<=c+w;f++){if(f>=0&&f<env.length&&env[f]>m)m=env[f];}return m;});
+    const sorted=str.filter(v=>v>0).sort((a,b)=>a-b);
+    const pct=p=>sorted.length?sorted[Math.min(sorted.length-1,Math.floor(p*sorted.length))]:Infinity;
+    const t1=pct(0.70), t2=pct(0.88);
+    beats[key]=str.map(v=> v>=t2?'2': v>=t1?'1':'0').join('');
+  }
+  return beats;
+}
+function generateClave(n){ const u='20202202'; let s=''; for(let i=0;i<n;i++) s+=u[i%u.length]; return s; }
+
+function detectSections(mono, sr, BTs, dur){
+  const win=Math.round(0.5*sr), n=Math.max(1,Math.floor(mono.length/win));
+  const rms=new Float32Array(n);
+  for(let i=0;i<n;i++){let s=0;const off=i*win;for(let j=0;j<win;j++){const v=mono[off+j]||0;s+=v*v;}rms[i]=Math.sqrt(s/win);}
+  const sm=smooth(rms,4); let maxR=0; for(let i=0;i<n;i++)if(sm[i]>maxR)maxR=sm[i]; maxR=maxR||1;
+  const bounds=[0]; let last=0;
+  for(let i=3;i<n-3;i++){ const d=Math.abs(sm[i+3]-sm[i-3])/maxR; if(d>0.16 && i-last>16){bounds.push(i);last=i;} }
+  bounds.push(n);
+  const secs=[];
+  for(let b=0;b<bounds.length-1;b++){
+    const a=bounds[b], e=bounds[b+1]; let s=0; for(let i=a;i<e;i++)s+=sm[i]; const mean=(s/Math.max(1,e-a))/maxR;
+    let label = mean>0.78?'CLIMAX': mean>0.52?'CORPS': mean>0.30?'RE-ENTRÉE':'BREAK';
+    secs.push({t_start:a*0.5, t_end:e*0.5, mean, label});
+  }
+  if(secs.length){ secs[0].label='INTRO'; const ls=secs[secs.length-1]; if(secs.length>1 && (ls.t_end-ls.t_start)<6) ls.label='CODA'; }
+  return secs.map(s=>{ const bs=beatIndexAt(BTs,s.t_start); return {label:s.label, t_start:+s.t_start.toFixed(1), t_end:+s.t_end.toFixed(1), beat_start:bs, beat_end:beatIndexAt(BTs,s.t_end), bar_start:Math.floor(bs/BPB)+1, rms_rel:+s.mean.toFixed(3)}; });
+}
+
+async function analyzeAudio(audioBuffer, forcedBpm){
+  const mono = await toMono(audioBuffer);
+  const dur = audioBuffer.duration, fr = A_SR/A_HOP;
+  const onsetByBand={};
+  for(const key in A_BANDS){
+    const [lo,hi]=A_BANDS[key]; const f0=Math.sqrt(lo*hi), Q=Math.max(0.6, f0/(hi-lo));
+    let filt=biquadBP(mono,A_SR,f0,Q); filt=biquadBP(filt,A_SR,f0,Q);
+    onsetByBand[key]=normalize(onsetEnv(filt,A_HOP));
+  }
+  let L=Infinity; for(const k in onsetByBand) L=Math.min(L,onsetByBand[k].length);
+  const global=new Float32Array(L);
+  for(const key in onsetByBand){const e=onsetByBand[key]; for(let i=0;i<L;i++) global[i]+=e[i];}
+  const bpm = forcedBpm || detectTempo(global,fr);
+  const beat_times = beatGrid(global,fr,bpm,dur);
+  const beats = bandHitsDraft(onsetByBand, beat_times, fr); beats.clave = generateClave(beat_times.length);
+  const sections = detectSections(mono, A_SR, beat_times, dur);
+  return { D:{ tempo:bpm, duration:+dur.toFixed(1), n:beat_times.length, beat_times, sections, beats }, mono, onsetByBand, global, fr, dur };
+}
+
+/* ── INGESTION : upload utilisateur → analyse → partition ── */
+async function handleUserAudio(arrayBuffer, name){
+  setStatus('loading','Décodage…');
+  let buf;
+  try { buf = await getCtx().decodeAudioData(arrayBuffer); }
+  catch(e){ setStatus('err','Erreur de décodage — essaie un autre format'); return; }
+  audioBuffer = buf;
+  setStatus('loading','Analyse en cours… ⏳ tempo · grille · sections');
+  await new Promise(r=>requestAnimationFrame(()=>r())); // laisse le statut se peindre avant le calcul lourd
+  try {
+    const res = await analyzeAudio(buf);
+    lastAnalysis = res;
+    buildScore(res.D);
+    setBpmUI(res.D.tempo, true);
+    document.getElementById('demoBtn').style.display='';
+    document.getElementById('loadBtn').textContent = '✓ '+(name?name.replace(/\.[^.]+$/,'').slice(0,16):'Chargé');
+    setStatus('ok', `Analysé · ${(buf.duration/60).toFixed(1)} min · ~${Math.round(res.D.tempo)} BPM · frappes = brouillon, à valider en édition`);
+  } catch(e){ console.error(e); setStatus('err','Analyse impossible — voir la console'); }
+}
+// Recalcule la grille depuis les enveloppes en cache (pas de re-filtrage), sur correction de tempo
+function reanalyzeBpm(bpm){
+  if(!lastAnalysis || !(bpm>20 && bpm<400)) return;
+  const a=lastAnalysis;
+  const beat_times=beatGrid(a.global,a.fr,bpm,a.dur);
+  const beats=bandHitsDraft(a.onsetByBand,beat_times,a.fr); beats.clave=generateClave(beat_times.length);
+  const sections=detectSections(a.mono,A_SR,beat_times,a.dur);
+  buildScore({tempo:bpm,duration:+a.dur.toFixed(1),n:beat_times.length,beat_times,sections,beats});
+  setBpmUI(bpm,true);
+}
+
+/* ── CONTRÔLES BPM + RETOUR DÉMO ── */
+const bpmBox=document.getElementById('bpmBox'), bpmVal=document.getElementById('bpmVal'), demoBtn=document.getElementById('demoBtn');
+function setBpmUI(bpm,show){ if(show){bpmBox.classList.remove('hidden'); bpmVal.textContent=Math.round(bpm);} else bpmBox.classList.add('hidden'); }
+document.getElementById('bpmHalf').addEventListener('click',()=>reanalyzeBpm(D.tempo/2));
+document.getElementById('bpmDbl').addEventListener('click',()=>reanalyzeBpm(D.tempo*2));
+demoBtn.addEventListener('click',()=>{
+  lastAnalysis=null; buildScore(DEMO); setBpmUI(0,false); demoBtn.style.display='none';
+  document.getElementById('loadBtn').textContent="📂 Charger l'audio";
+  setStatus('loading','Rechargement de la démo…');
+  fetch('MASTER_4_QUE_CALOR.m4a').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>getCtx().decodeAudioData(ab))
+    .then(b=>{audioBuffer=b;setStatus('ok','Démo Que Calor · analyse de référence');})
+    .catch(()=>setStatus('','Démo Que Calor · audio indisponible'));
 });
 
 /* ── ÉDITEUR DE VALIDATION (Phase 1) ──────────── */
