@@ -601,7 +601,7 @@ function startPlay() {
   if (audioBuffer) {
     // ── AUDIO MODE: Web Audio drives the clock ──
     const c = getCtx();
-    if (audioSource) { try{audioSource.stop();}catch(e){} }
+    if (audioSource) { try{audioSource.onended=null;audioSource.stop();}catch(e){} }
     audioSource      = c.createBufferSource();
     audioSource.buffer = audioBuffer;
     audioSource.connect(filterNode);
@@ -621,7 +621,7 @@ function startPlay() {
 
 function stopPlay() {
   playing = false;
-  if (audioSource) { try{audioSource.stop();}catch(e){} audioSource=null; }
+  if (audioSource) { try{audioSource.onended=null;audioSource.stop();}catch(e){} audioSource=null; }
   if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
   playBtn.innerHTML = '▶'; playBtn.classList.remove('playing');
 }
@@ -633,7 +633,7 @@ function jumpTo(bi) {
   scrollX       = Math.max(0, beatX(cl) - tracksScrollEl.clientWidth*PLAYHEAD_FRAC);
   if (playing) {
     // Restart audio at new position
-    if (audioSource) { try{audioSource.stop();}catch(e){} audioSource=null; }
+    if (audioSource) { try{audioSource.onended=null;audioSource.stop();}catch(e){} audioSource=null; }
     if (audioBuffer) {
       const c = getCtx();
       audioSource = c.createBufferSource();
