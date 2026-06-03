@@ -140,12 +140,22 @@ html, body {
 /* ── CELL ── */
 .cell {
   width: var(--cw); height: var(--ch); border-radius: var(--cr); flex-shrink: 0;
-  transition: background 0.3s, box-shadow 0.3s, transform 0.07s;
-  border: 1px solid transparent;
+  transition: background 0.3s, box-shadow 0.3s, transform 0.07s, opacity 0.25s;
+  border: 1px solid transparent; position: relative;
 }
-.cell.l0 { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07); }
-.cell.l1 { background: rgba(var(--ic),0.28); border-color: rgba(var(--ic),0.18); }
-.cell.l2 { background: rgba(var(--ic),0.60); border-color: rgba(var(--ic),0.38); box-shadow: 0 0 5px rgba(var(--ic),0.2); }
+/* Point central : la taille encode l'intensité de la frappe (lisible sans couleur) */
+.cell::after {
+  content:''; position:absolute; left:50%; top:50%; width:0; height:0;
+  border-radius:50%; background: rgb(var(--ic));
+  transform: translate(-50%,-50%);
+  transition: width 0.18s, height 0.18s, opacity 0.18s;
+}
+.cell.l0 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); }
+.cell.l1 { background: rgba(var(--ic),0.14); border-color: rgba(var(--ic),0.22); }
+.cell.l1::after { width:4px; height:4px; opacity:0.6; }
+.cell.l2 { background: rgba(var(--ic),0.40); border-color: rgba(var(--ic),0.5); box-shadow: 0 0 6px rgba(var(--ic),0.25); }
+.cell.l2::after { width:8px; height:8px; opacity:0.95; box-shadow: 0 0 5px rgba(var(--ic),0.7); }
+.cell.faded { opacity: 0.07; }
 .cell.active {
   background: rgb(var(--ic)) !important; border-color: rgba(255,255,255,0.45) !important;
   box-shadow: 0 0 12px rgba(var(--ic),0.85), 0 0 28px rgba(var(--ic),0.4) !important;
@@ -155,6 +165,27 @@ html, body {
 .cell.t1 { background: rgba(var(--ic),0.80)!important; box-shadow: 0 0 8px rgba(var(--ic),0.45)!important; transition: background 0.1s, box-shadow 0.1s; }
 .cell.t2 { background: rgba(var(--ic),0.48)!important; box-shadow: 0 0 4px rgba(var(--ic),0.2)!important;  transition: background 0.2s, box-shadow 0.2s; }
 .cell.t3 { transition: background 0.35s, box-shadow 0.35s; }
+
+/* ── SECTION NAV (vue par section) ── */
+#sectionNav {
+  flex-shrink:0; display:flex; gap:6px; align-items:center;
+  padding:7px 16px; overflow-x:auto; overflow-y:hidden;
+  border-bottom:1px solid var(--border); background:var(--bg);
+  -webkit-overflow-scrolling:touch;
+}
+#sectionNav::-webkit-scrollbar { height:0; }
+.sec-chip {
+  flex-shrink:0; height:26px; padding:0 11px; border-radius:20px;
+  border:1px solid var(--border2); background:transparent;
+  font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  color:var(--mid); cursor:pointer; white-space:nowrap;
+  display:flex; align-items:center; gap:5px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.sec-chip .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.sec-chip .mno { font-size:8px; opacity:0.55; font-weight:600; letter-spacing:0; }
+.sec-chip.current { color:var(--text); border-color:var(--mid); }
+.sec-chip.focused { color:#fff; background:rgba(255,255,255,0.07); border-color:rgba(255,255,255,0.4); }
 
 #playhead {
   position: absolute; top: 6px; bottom: 6px; width: 2px;
@@ -236,6 +267,9 @@ html, body {
     <button id="loadBtn">📂 Charger l'audio</button>
     <input type="file" id="fileInput" accept="audio/*">
   </div>
+
+  <!-- Navigation par section (vue par section) -->
+  <div id="sectionNav"></div>
 
   <div id="trackArea">
     <div id="ruler"><div id="rulerInner"></div></div>
@@ -376,6 +410,7 @@ document.addEventListener('drop', e => {
 
 let playing = false, rafId = null, lastBeat = -1, trailBeats = [], scrollX = 0;
 let perfStart = 0, perfOffset = 0; // fallback clock
+let focus = null; // section isolée : {start, end} en beats (end exclusif)
 
 function currentAudioPos() {
   if (audioSource && actx) {
@@ -390,7 +425,7 @@ function getBeatAt(t) {
   return lo;
 }
 function sectionFor(bi) {
-  for(let s=D.sections.length-1;s>=0;s--) if(bi>=D.sections[s].bi) return D.sections[s];
+  for(let s=D.sections.length-1;s>=0;s--) if(bi>=D.sections[s].beat_start) return D.sections[s];
   return D.sections[0];
 }
 function beatX(bi) { return LW + Math.floor(bi/BPB)*BAR_PX + (bi%BPB)*BEAT_PX + CW/2; }
@@ -429,6 +464,7 @@ function updateUI(bi, at) {
     secPill.textContent=sec.label; secPill.style.background=`rgba(${col},0.18)`; secPill.style.borderColor=`rgba(${col},0.5)`; secPill.style.color=`rgb(${col})`;
     scrub.value=bi; scrubFill.style.width=((bi/(N-1))*100)+'%';
     lastBeat = bi;
+    updateChips();
   }
   const px  = lerpX(at);
   const ts  = Math.max(0, px - tracksScrollEl.clientWidth*PLAYHEAD_FRAC);
@@ -443,6 +479,11 @@ function updateUI(bi, at) {
 function rafLoop() {
   if (!playing) return;
   const at = currentAudioPos();
+  // Vue par section : on s'arrête en fin de section et on revient à son début (clock audio seul juge)
+  if (focus) {
+    const endT = BT[Math.min(focus.end, N-1)];
+    if (at >= endT) { stopPlay(); jumpTo(focus.start); return; }
+  }
   const bi = Math.min(getBeatAt(at), N-1);
   updateUI(bi, at);
   if (at < BT[N-1]+0.8) rafId = requestAnimationFrame(rafLoop);
@@ -523,10 +564,10 @@ for (let b=0;b<Math.ceil(N/BPB);b++) {
 
 // Section band
 D.sections.forEach((sec,i)=>{
-  const next=D.sections[i+1]; const span=(next?next.bi:N)-sec.bi;
+  const next=D.sections[i+1]; const span=(next?next.beat_start:N)-sec.beat_start;
   const el=document.createElement('div');
   el.style.cssText=`width:${Math.ceil(span/BPB)*BAR_PX}px;height:100%;background:rgba(${SEC_COL[sec.label]||'80,80,80'},0.75);flex-shrink:0;cursor:pointer;`;
-  el.title=sec.label; el.addEventListener('click',()=>jumpTo(sec.bi)); secBandInner.appendChild(el);
+  el.title=sec.label; el.addEventListener('click',()=>jumpTo(sec.beat_start)); secBandInner.appendChild(el);
 });
 
 // Tracks
@@ -558,13 +599,77 @@ INSTS.filter(i=>!i.isClave).forEach(inst=>{
   soloGroup.appendChild(btn);
 });
 
+/* ── SECTION FOCUS (vue par section) ─────────── */
+// Fusionne les sections consécutives de même label en une seule plage navigable
+const mergedSecs = (() => {
+  const out = [];
+  D.sections.forEach(s => {
+    const last = out[out.length-1];
+    if (last && last.label === s.label && last.beat_end === s.beat_start) {
+      last.beat_end = s.beat_end;
+    } else {
+      out.push({ label:s.label, beat_start:s.beat_start, beat_end:s.beat_end, bar:s.bar_start });
+    }
+  });
+  return out;
+})();
+
+const sectionNav = document.getElementById('sectionNav');
+const chipEls = [];
+const allChip = document.createElement('button');
+allChip.className = 'sec-chip focused'; allChip.textContent = 'Tout';
+allChip.addEventListener('click', clearFocus);
+sectionNav.appendChild(allChip);
+mergedSecs.forEach(ms => {
+  const col = SEC_COL[ms.label] || '120,120,140';
+  const chip = document.createElement('button');
+  chip.className = 'sec-chip'; chip._ms = ms;
+  chip.style.borderColor = `rgba(${col},0.4)`;
+  chip.innerHTML = `<span class="dot" style="background:rgb(${col})"></span>${ms.label}<span class="mno">m.${ms.bar}</span>`;
+  chip.addEventListener('click', () => toggleFocus(ms));
+  sectionNav.appendChild(chip); chipEls.push(chip);
+});
+
+function clampToFocus(bi) {
+  if (focus) return Math.max(focus.start, Math.min(bi, focus.end-1));
+  return Math.max(0, Math.min(bi, N-1));
+}
+function toggleFocus(ms) {
+  if (focus && focus.start === ms.beat_start) { clearFocus(); return; }
+  focus = { start: ms.beat_start, end: ms.beat_end };
+  scrub.min = ms.beat_start; scrub.max = Math.max(ms.beat_start, ms.beat_end-1);
+  applyFaded(); updateChips(); jumpTo(ms.beat_start);
+}
+function clearFocus() {
+  focus = null; scrub.min = 0; scrub.max = N-1;
+  applyFaded(); updateChips();
+}
+function applyFaded() {
+  for (const inst of INSTS) {
+    const arr = cells[inst.key];
+    for (let bi=0; bi<N; bi++) {
+      const c = arr[bi]; if (!c) continue;
+      c.classList.toggle('faded', !!focus && (bi < focus.start || bi >= focus.end));
+    }
+  }
+}
+function updateChips() {
+  allChip.classList.toggle('focused', !focus);
+  chipEls.forEach(ch => {
+    const ms = ch._ms;
+    ch.classList.toggle('focused', !!focus && focus.start === ms.beat_start);
+    ch.classList.toggle('current', lastBeat >= ms.beat_start && lastBeat < ms.beat_end);
+  });
+}
+updateChips();
+
 // Metro dots
 const metroEl=document.getElementById('metro'); const mdots=[];
 for(let i=0;i<BPB;i++){const d=document.createElement('div');d.className='mdot'+(i===0?' b1':'');metroEl.appendChild(d);mdots.push(d);}
 
 /* ── CONTROLS ─────────────────────────────── */
 playBtn.addEventListener('click',()=>playing?stopPlay():startPlay());
-document.getElementById('restartBtn').addEventListener('click',()=>{jumpTo(0);if(playing)stopPlay();});
+document.getElementById('restartBtn').addEventListener('click',()=>{jumpTo(focus?focus.start:0);if(playing)stopPlay();});
 scrub.addEventListener('input',e=>jumpTo(parseInt(e.target.value)));
 scrub.addEventListener('change',e=>jumpTo(parseInt(e.target.value)));
 volSlider.addEventListener('input',e=>{if(gainNode) gainNode.gain.setTargetAtTime(parseFloat(e.target.value),getCtx().currentTime,0.01);});
@@ -577,9 +682,9 @@ document.getElementById('volIcon').addEventListener('click',()=>{
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
   if(e.code==='Space'){e.preventDefault();playBtn.click();}
-  if(e.code==='ArrowRight')jumpTo(Math.min(lastBeat+BPB*4,N-1));
-  if(e.code==='ArrowLeft')jumpTo(Math.max(lastBeat-BPB*4,0));
-  if(e.code==='Home'){jumpTo(0);if(playing)stopPlay();}
+  if(e.code==='ArrowRight')jumpTo(clampToFocus(lastBeat+BPB*4));
+  if(e.code==='ArrowLeft')jumpTo(clampToFocus(lastBeat-BPB*4));
+  if(e.code==='Home'){jumpTo(focus?focus.start:0);if(playing)stopPlay();}
 });
 
 updateUI(0, BT[0]);
