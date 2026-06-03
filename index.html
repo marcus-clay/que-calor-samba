@@ -414,6 +414,7 @@ let actx = null;
 let audioBuffer = null;   // decoded audio
 let audioSource = null;   // current playing AudioBufferSourceNode
 let gainNode = null;
+let filterNode = null;   // passe-bande inséré pour le solo audio (lecture isolée par registre)
 let sourceStartCtx = 0;  // ctx.currentTime when source started
 let sourceStartAudio = 0; // position in audio buffer where we started
 
@@ -423,9 +424,28 @@ function getCtx() {
     gainNode = actx.createGain();
     gainNode.gain.value = parseFloat(volSlider.value);
     gainNode.connect(actx.destination);
+    // Graphe : source → filterNode → gain → sortie. filterNode neutre (allpass) hors solo.
+    filterNode = actx.createBiquadFilter();
+    filterNode.type = 'allpass';
+    filterNode.connect(gainNode);
+    applySoloAudio();
   }
   if (actx.state === 'suspended') actx.resume();
   return actx;
+}
+
+// Solo audio : filtre la lecture sur la bande de l'instrument soloé (même bandes que l'analyse)
+function applySoloAudio() {
+  if (!filterNode || !actx) return;
+  const band = typeof A_BANDS !== 'undefined' ? A_BANDS[soloedInst] : null;
+  if (soloedInst && band) {
+    const f0 = Math.sqrt(band[0] * band[1]), Q = Math.max(0.7, f0 / (band[1] - band[0]));
+    filterNode.type = 'bandpass';
+    filterNode.frequency.setValueAtTime(f0, actx.currentTime);
+    filterNode.Q.setValueAtTime(Q, actx.currentTime);
+  } else {
+    filterNode.type = 'allpass';
+  }
 }
 
 function setStatus(state, text) {
@@ -579,7 +599,7 @@ function startPlay() {
     if (audioSource) { try{audioSource.stop();}catch(e){} }
     audioSource      = c.createBufferSource();
     audioSource.buffer = audioBuffer;
-    audioSource.connect(gainNode);
+    audioSource.connect(filterNode);
     sourceStartAudio = startAt;
     sourceStartCtx   = c.currentTime;
     audioSource.start(0, startAt);
@@ -613,7 +633,7 @@ function jumpTo(bi) {
       const c = getCtx();
       audioSource = c.createBufferSource();
       audioSource.buffer = audioBuffer;
-      audioSource.connect(gainNode);
+      audioSource.connect(filterNode);
       sourceStartAudio = startAt;
       sourceStartCtx   = c.currentTime;
       audioSource.start(0, startAt);
@@ -644,6 +664,7 @@ INSTS.filter(i=>!i.isClave).forEach(inst=>{
   btn.addEventListener('click',()=>{
     if(soloedInst===inst.key){soloedInst=null;document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));}
     else{soloedInst=inst.key;document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');btn.style.borderColor=`rgb(${inst.rgb})`;document.querySelectorAll('.track').forEach(t=>t.classList.toggle('dimmed',t.dataset.key!==inst.key&&t.dataset.key!=='clave'));}
+    applySoloAudio();
   });
   soloGroup.appendChild(btn);
 });
@@ -753,7 +774,7 @@ function buildScore(d){
   lastBeat = -1; trailBeats = []; scrollX = 0; focus = null;
   tracksInner.style.transform='translateX(0)'; rulerInner.style.transform='translateX(0)'; secBandInner.style.transform='translateX(0)';
   buildRuler(); buildBand(); buildTracks(); buildChips();
-  soloedInst=null;
+  soloedInst=null; applySoloAudio();
   document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));
   scrub.min=0; scrub.max=Math.max(1,N-1); scrub.value=0;
