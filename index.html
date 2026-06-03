@@ -109,6 +109,13 @@ html, body {
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 #audioStatusText { color: var(--mid); }
 .spacer-sm { flex: 1; }
+#legend { display: flex; align-items: center; gap: 5px; font-size: 9px; color: var(--mid); white-space: nowrap; }
+#legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+#legend i + span { margin-right: 6px; }
+.lg-rest { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+.lg-hit { background: rgba(255,255,255,0.5); }
+.lg-acc { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.6); }
+@media (max-width: 560px) { #legend { display: none; } }
 #loadBtn, #editBtn, #expBtn, #demoBtn {
   height: 22px; padding: 0 12px; border-radius: 4px;
   border: 1px solid var(--border2); background: transparent;
@@ -167,6 +174,18 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 #secBandInner { position: absolute; left: var(--lw); top:0; bottom:0; display:flex; will-change: transform; }
 
 #tracksScroll { flex: 1; overflow: hidden; position: relative; }
+/* Étiquettes d'instrument fixes (ne défilent pas avec la partition) */
+#trackLabels {
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--lw); z-index: 5;
+  background: var(--bg); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: var(--tr-gap); padding: 8px 0;
+  pointer-events: none;
+}
+.tl-item { height: var(--ch); flex-shrink: 0; display: flex; align-items: center; gap: 7px; padding: 0 8px 0 14px; }
+.tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.tl-name { font-size: 11px; font-weight: 700; line-height: 1.1; }
+.tl-sub { font-size: 8px; color: var(--dim); }
+.tl-sep { height: 1px; background: var(--border); margin: 2px 0; flex-shrink: 0; }
 #tracksInner {
   position: absolute; top:0; left:0; height:100%;
   display: flex; flex-direction: column; gap: var(--tr-gap);
@@ -192,18 +211,10 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
   transition: background 0.3s, box-shadow 0.3s, transform 0.07s, opacity 0.25s;
   border: 1px solid transparent; position: relative;
 }
-/* Point central : la taille encode l'intensité de la frappe (lisible sans couleur) */
-.cell::after {
-  content:''; position:absolute; left:50%; top:50%; width:0; height:0;
-  border-radius:50%; background: rgb(var(--ic));
-  transform: translate(-50%,-50%);
-  transition: width 0.18s, height 0.18s, opacity 0.18s;
-}
-.cell.l0 { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.05); }
-.cell.l1 { background: rgba(var(--ic),0.14); border-color: rgba(var(--ic),0.22); }
-.cell.l1::after { width:4px; height:4px; opacity:0.6; }
-.cell.l2 { background: rgba(var(--ic),0.40); border-color: rgba(var(--ic),0.5); box-shadow: 0 0 6px rgba(var(--ic),0.25); }
-.cell.l2::after { width:8px; height:8px; opacity:0.95; box-shadow: 0 0 5px rgba(var(--ic),0.7); }
+/* Langage de lecture : silence ≈ invisible, frappe = bloc plein, accent = bloc vif + halo */
+.cell.l0 { background: rgba(255,255,255,0.018); border-color: transparent; }
+.cell.l1 { background: rgba(var(--ic),0.48); border-color: rgba(var(--ic),0.55); }
+.cell.l2 { background: rgb(var(--ic)); border-color: rgba(255,255,255,0.4); box-shadow: 0 0 9px rgba(var(--ic),0.55); }
 .cell.faded { opacity: 0.07; }
 .cell.active {
   background: rgb(var(--ic)) !important; border-color: rgba(255,255,255,0.45) !important;
@@ -337,6 +348,7 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
       <div id="audioDot"></div>
       <span id="audioStatusText">Aucun audio chargé — visuels seuls</span>
     </div>
+    <div id="legend"><i class="lg-rest"></i><span>silence</span><i class="lg-hit"></i><span>frappe</span><i class="lg-acc"></i><span>accent</span></div>
     <div class="spacer-sm"></div>
     <div id="bpmBox" class="hidden"><button id="bpmHalf">÷2</button><span id="bpmVal">—</span><span class="bpm-unit">BPM</span><button id="bpmDbl">×2</button></div>
     <button id="demoBtn" style="display:none">↺ Démo</button>
@@ -353,6 +365,7 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
     <div id="ruler"><div id="rulerInner"></div></div>
     <div id="secBand"><div id="secBandInner"></div></div>
     <div id="tracksScroll">
+      <div id="trackLabels"></div>
       <div id="tracksInner"></div>
       <div id="playhead"></div>
     </div>
@@ -695,11 +708,15 @@ function buildBand() {
 }
 function buildTracks() {
   tracksInner.innerHTML=''; cells={};
+  const labels=document.getElementById('trackLabels'); labels.innerHTML='';
   INSTS.forEach(inst=>{
-    if (inst.isClave){const s=document.createElement('div');s.className='clave-sep';tracksInner.appendChild(s);}
+    if (inst.isClave){
+      const s=document.createElement('div');s.className='clave-sep';tracksInner.appendChild(s);
+      const ls=document.createElement('div');ls.className='tl-sep';labels.appendChild(ls);
+    }
     cells[inst.key]=new Array(N);
     const row=document.createElement('div'); row.className='track'; row.dataset.key=inst.key; row.style.setProperty('--ic',inst.rgb);
-    row.innerHTML=`<div class="track-label"><div class="t-dot" style="background:rgb(${inst.rgb});box-shadow:0 0 5px rgba(${inst.rgb},0.5)"></div><div class="t-info"><span class="t-name" style="color:rgb(${inst.rgb})">${inst.name}</span><span class="t-sub">${inst.sub}</span></div></div>`;
+    row.innerHTML=`<div class="track-label"></div>`; // gabarit 120px ; l'étiquette réelle est fixe (#trackLabels)
     const wrap=document.createElement('div'); wrap.className='track-cells';
     for(let bi=0;bi<N;bi++){
       if(bi%BPB===0){const bg=document.createElement('div');bg.className='bar-cells';wrap.appendChild(bg);}
@@ -710,6 +727,10 @@ function buildTracks() {
       wrap.lastChild.appendChild(cell); cells[inst.key][bi]=cell;
     }
     row.appendChild(wrap); tracksInner.appendChild(row);
+    // étiquette fixe correspondante
+    const li=document.createElement('div'); li.className='tl-item';
+    li.innerHTML=`<div class="tl-dot" style="background:rgb(${inst.rgb});box-shadow:0 0 5px rgba(${inst.rgb},0.5)"></div><div><div class="tl-name" style="color:rgb(${inst.rgb})">${inst.name}</div><div class="tl-sub">${inst.sub}</div></div>`;
+    labels.appendChild(li);
   });
 }
 
