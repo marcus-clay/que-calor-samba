@@ -69,13 +69,16 @@ html, body {
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 #audioStatusText { color: var(--mid); }
 .spacer-sm { flex: 1; }
-#loadBtn {
+#loadBtn, #editBtn, #expBtn {
   height: 22px; padding: 0 12px; border-radius: 4px;
   border: 1px solid var(--border2); background: transparent;
   font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
   color: var(--mid); cursor: pointer; transition: all 0.15s; white-space: nowrap;
 }
-#loadBtn:hover { color: var(--text); border-color: var(--mid); }
+#loadBtn:hover, #editBtn:hover, #expBtn:hover { color: var(--text); border-color: var(--mid); }
+#editBtn.on { color: #22c4a0; border-color: #22c4a0; }
+body.editing .cell { cursor: pointer; }
+body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-offset: -1px; }
 #fileInput { display: none; }
 
 /* ── DRAG OVERLAY ── */
@@ -264,6 +267,8 @@ html, body {
       <span id="audioStatusText">Aucun audio chargé — visuels seuls</span>
     </div>
     <div class="spacer-sm"></div>
+    <button id="expBtn" style="display:none">⧉ Copier les patterns</button>
+    <button id="editBtn">✏️ Éditer</button>
     <button id="loadBtn">📂 Charger l'audio</button>
     <input type="file" id="fileInput" accept="audio/*">
   </div>
@@ -307,7 +312,7 @@ html, body {
 </div>
 
 <script>
-const D = {"tempo":120.18531976744185,"duration":300.0,"n":597,"beat_times":[2.0201,2.4033,2.9605,3.5178,4.0287,4.5279,5.0387,5.5263,6.014,6.4087,6.966,7.5117,8.0225,8.5217,9.0326,9.5202,10.0194,10.5883,11.1456,11.5287,12.0279,12.5272,13.038,13.5256,14.0132,14.3964,14.7679,15.151,15.5225,16.0218,16.521,17.0318,17.5195,18.0187,18.4018,18.9591,19.5164,20.0272,20.5264,21.0373,21.5249,22.0241,22.4073,22.9645,23.5218,24.0327,24.5319,25.0311,25.5187,25.9715,26.4127,26.9468,27.4808,27.9917,28.5141,29.0366,29.5242,29.977,30.4181,30.9522,31.4863,31.9971,32.5079,33.0304,33.518,33.9824,34.4236,34.9576,35.4917,35.9909,36.5134,37.0358,37.5234,37.9762,38.4174,38.9515,39.4855,39.9964,40.5072,41.0297,41.5173,41.9817,42.4229,42.9569,43.491,43.9902,44.5127,45.0351,45.5227,45.9755,46.4167,46.9507,47.4848,47.9956,48.5065,49.0289,49.5166,49.9926,50.5266,51.0259,51.5367,52.0359,52.5351,53.0228,53.522,54.0212,54.5205,55.0197,55.5189,56.0298,56.529,57.0398,57.539,58.0151,58.3982,58.8858,59.385,59.8378,60.279,60.7782,61.3936,61.8928,62.392,62.8912,63.3905,63.8433,64.2844,64.7837,65.3874,65.8866,66.3975,66.8851,67.3843,67.8371,68.2783,68.7775,69.3928,69.8921,70.3913,70.8905,71.3898,71.8425,72.2837,72.7829,73.3867,73.8859,74.3967,74.8844,75.3836,75.8364,76.2776,76.7768,77.276,77.7868,78.3906,78.9014,79.4006,79.8999,80.3875,80.8867,81.3976,81.92,82.396,82.8952,83.4061,83.9053,84.4045,84.8922,85.3333,85.7745,86.2621,86.7614,87.2954,87.7714,88.259,88.7467,89.2807,89.7683,90.2676,90.7552,91.2893,91.7769,92.2645,92.7521,93.2746,93.7622,94.273,94.7606,95.2947,95.7823,96.2699,96.7576,97.28,97.7676,98.2668,98.7545,99.3001,99.7645,100.2638,100.7514,101.2854,101.7615,102.2723,102.7599,103.294,103.7816,104.2692,104.7568,105.2793,105.7669,106.2661,106.7537,107.2994,107.7638,108.263,108.7507,109.2847,109.7723,110.26,110.7592,111.2932,111.7809,112.2569,112.7445,113.2785,113.7662,114.2654,114.753,115.2871,115.7631,116.2623,116.7499,117.2724,117.7484,118.2592,118.7585,119.2925,119.7801,120.2561,120.7554,121.2778,121.7654,122.2647,122.7523,123.2863,123.7624,124.2616,124.7492,125.2833,125.7825,126.2817,126.839,127.3963,127.9652,128.5341,129.0797,129.5441,130.0201,130.531,131.065,131.5527,132.0403,132.5395,133.0387,133.5263,134.0256,134.5364,135.0589,135.5581,136.0341,136.5449,137.0442,137.5318,138.0078,138.3445,138.8321,139.3313,139.8422,140.3414,140.829,141.3166,141.8391,142.3383,142.8259,143.3252,143.836,144.3352,144.8229,145.3221,145.8329,146.3438,146.8314,147.3306,147.8415,148.3407,148.8283,149.3159,149.8384,150.3376,150.8252,151.3244,151.8353,152.3345,152.8221,153.3214,153.8322,154.343,154.8307,155.3299,155.8407,156.34,156.8276,157.3152,157.8376,158.3369,158.8245,159.3121,159.8346,160.3338,160.8214,161.3206,161.8315,162.3423,162.8299,163.3176,163.84,164.3392,164.8268,165.3145,165.8369,166.3361,166.8238,167.323,167.8338,168.3447,168.8323,169.3199,169.8424,170.3416,170.8292,171.3168,171.8393,172.3385,172.8377,173.3254,173.8362,174.3354,174.8346,175.3223,175.8331,176.3439,176.8316,177.3192,177.8532,178.3641,179.0259,179.5367,180.0359,180.5351,181.0228,181.5336,182.0444,182.5321,183.0429,183.5189,184.0414,184.529,185.0514,185.539,186.0267,186.5259,187.0367,187.5476,188.0352,188.5228,189.0337,189.5329,190.0205,190.5197,191.0306,191.5414,192.029,192.5166,193.0275,193.5383,194.0259,194.5252,195.036,195.5468,196.0345,196.5221,197.0329,197.5322,198.0198,198.519,199.0298,199.5407,200.0283,200.5159,201.0268,201.5376,202.0252,202.5244,203.0237,203.5461,203.9989,204.5214,205.1483,205.6475,206.1468,206.6692,207.1568,207.54,208.0276,208.5268,209.026,209.5369,210.0245,210.5237,211.0113,211.499,211.9982,212.4742,213.0083,213.5191,214.0299,214.5176,215.0284,215.5276,216.0268,216.5261,217.0369,217.5245,218.0354,218.523,219.1383,219.5447,220.0207,220.5315,221.0191,221.4603,221.9015,222.4588,223.0161,223.4572,223.8868,224.4557,225.013,225.4658,225.9069,226.3946,226.917,227.4162,228.0316,228.5192,229.0184,229.5293,230.0285,230.5277,231.0269,231.5262,232.0254,232.5246,233.0239,233.5231,234.0339,234.5215,235.0208,235.4503,235.8799,236.414,237.0177,237.5285,238.0278,238.527,239.0262,239.5371,240.0363,240.5239,241.0231,241.5224,242.0332,242.5208,243.02,243.4496,243.8908,244.4249,245.017,245.5278,246.027,246.5263,247.0255,247.5363,248.0356,248.5232,249.0224,249.5216,250.0325,250.5201,251.0193,251.4489,251.8901,252.4241,253.0162,253.5271,254.0379,254.5255,255.0132,255.4427,255.8839,256.3367,256.7895,257.3235,257.7879,258.2872,258.7748,259.4017,259.8893,260.2957,260.7949,261.2709,261.7818,262.2926,262.7918,263.2795,263.7903,264.2895,264.8004,265.2764,265.7872,266.2864,266.9134,267.4242,267.9002,268.3878,268.8871,269.2702,269.781,270.2687,270.7795,271.2671,271.778,272.2656,272.7764,273.264,273.7749,274.2741,274.7849,275.2726,275.7834,276.271,276.7819,277.2695,277.7803,278.2679,278.7788,279.2664,279.7772,280.2765,280.7757,281.2749,281.7741,282.2734,282.7842,283.2718,283.7827,284.2703,284.7811,285.2688,285.7796,286.2672,286.778,287.2657,287.7765,288.2757,288.7866,289.2742,289.7734,290.2727,290.7835,291.2711,291.782,292.2696,292.7804,293.268,293.7789,294.2665,294.7773,295.2766,295.7758,296.275,296.7859,297.2735,297.7727,298.2719,298.8989,299.5258],"sections":[{"t_start":0.0,"t_end":50.3,"label":"INTRO","bar_start":1,"rms_rel":0.366,"duration_s":50.3,"beat_start":0,"beat_end":97},{"t_start":50.3,"t_end":84.1,"label":"CORPS","bar_start":25,"rms_rel":0.782,"duration_s":33.8,"beat_start":97,"beat_end":164},{"t_start":84.1,"t_end":124.2,"label":"CORPS","bar_start":42,"rms_rel":0.629,"duration_s":40.1,"beat_start":164,"beat_end":244},{"t_start":124.2,"t_end":186.3,"label":"CLIMAX","bar_start":62,"rms_rel":0.836,"duration_s":62.1,"beat_start":244,"beat_end":367},{"t_start":186.3,"t_end":201.8,"label":"BREAK","bar_start":92,"rms_rel":0.365,"duration_s":15.5,"beat_start":367,"beat_end":398},{"t_start":201.8,"t_end":218.7,"label":"BREAK","bar_start":100,"rms_rel":0.374,"duration_s":17.0,"beat_start":398,"beat_end":432},{"t_start":218.7,"t_end":226.9,"label":"RE-ENTR\u00c9E","bar_start":109,"rms_rel":0.513,"duration_s":8.2,"beat_start":432,"beat_end":448},{"t_start":226.9,"t_end":259.9,"label":"CLIMAX","bar_start":113,"rms_rel":0.816,"duration_s":33.0,"beat_start":448,"beat_end":514},{"t_start":259.9,"t_end":275.8,"label":"CORPS","bar_start":129,"rms_rel":0.642,"duration_s":15.8,"beat_start":514,"beat_end":546},{"t_start":275.8,"t_end":287.8,"label":"CLIMAX","bar_start":137,"rms_rel":0.883,"duration_s":12.0,"beat_start":546,"beat_end":570},{"t_start":287.8,"t_end":298.7,"label":"CLIMAX","bar_start":143,"rms_rel":0.918,"duration_s":11.0,"beat_start":570,"beat_end":592},{"t_start":298.7,"t_end":300.0,"label":"CODA","bar_start":149,"rms_rel":0.658,"duration_s":1.3,"beat_start":592,"beat_end":595}],"beats":{"marcacao":"000000000200000000000100000000100000002000000000000002000000001000020000001000002000010000200000001000020000000000020000010000000200000100000000000100000010001000000200001000001000100010000000010000000200000000000200000001000000100001000200000010000200000200010000000010000100010000001000010002000100010001000200000100000010000001000100010000000000010000000100000000000002000200020002000000000000002000020002000000020000000010000000000200000020002000000000020000200000000100020002000001000200000200000001000200020000020000000000200000001000000000010000100000020001000000010002000000000002000100020","doubles":"000000000000020000020000000200002000200002000020000000010000000100000010000000002000002000010000200000020000000002000001000000000001000001000000000200000010002000000200001000000000000010000000000000001000000010000100000000000000100000000000000001000200000000000000200000200000010001000100010001000000000002000100000100000000010000000000200000000000000001000000000000000000200000020000020002000002000100002000000000000200000100002000000200000000000002000000000000200000000100010001000002000100001000000020000200000100020000200000002000020000000000000000000000010002000200000000100000000001000200020","coupes":"000200002000000000200000000020002000200000020000000200020002000200020002000000100000000100000000200000002000010001000000000000000100000001000100000001000100001000000000100000000000000000000000000100001000000000000000000000000000000001000000000000000000200000200000100000000100010001000000010000000000000000000000000000000000010000000000000000000000000000010000000000000002000002000000000200000002000000001000001000000100000000000001000200000200000200000000000000200000000100001000000001000000001000000010000000010000020000002000000020000000000000010000000100010001000200000000000000010001000200001","repinike":"200002000002000002000000200000000000200000002000200000002000000200020002000100020002000200010002000000010000000000010000010000010000000001000000000010000000000000000000200000000000000000000000000000001000000000000000000000000000000000000000000000000100000000000000100000000100010000000000010000100000000000000200000001000100020001000000000000000000000000000010000000000001000001000000000100010001000000000000000000000000000000000100000000002000000200000000000000100000100000001000000001000000010000001000000010000002000200000200002000000001000000010001000000010001000100000001000100000001000100010","caixas":"000000200002000002000000200000000000200000002000000200000002000200020000002000020002000200020002000000100000000000100000010000000010000001000100000000000000000000000000200000000000000000000000000000001000000000000000000000000000000000000000000000000100000000000000100000000100001000100000010000100010000000100010000001000100010000000000000000000100000000000010000000000000000100000000000000010000000000000000000000000000000000000000100000000000000200000000000000100000100000001000000010000000100000001000000010000000000200000200020000010001000100010001000000010001000100000001000100000001000100000","clave":"202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202"}};
+const DEMO = {"tempo":120.18531976744185,"duration":300.0,"n":597,"beat_times":[2.0201,2.4033,2.9605,3.5178,4.0287,4.5279,5.0387,5.5263,6.014,6.4087,6.966,7.5117,8.0225,8.5217,9.0326,9.5202,10.0194,10.5883,11.1456,11.5287,12.0279,12.5272,13.038,13.5256,14.0132,14.3964,14.7679,15.151,15.5225,16.0218,16.521,17.0318,17.5195,18.0187,18.4018,18.9591,19.5164,20.0272,20.5264,21.0373,21.5249,22.0241,22.4073,22.9645,23.5218,24.0327,24.5319,25.0311,25.5187,25.9715,26.4127,26.9468,27.4808,27.9917,28.5141,29.0366,29.5242,29.977,30.4181,30.9522,31.4863,31.9971,32.5079,33.0304,33.518,33.9824,34.4236,34.9576,35.4917,35.9909,36.5134,37.0358,37.5234,37.9762,38.4174,38.9515,39.4855,39.9964,40.5072,41.0297,41.5173,41.9817,42.4229,42.9569,43.491,43.9902,44.5127,45.0351,45.5227,45.9755,46.4167,46.9507,47.4848,47.9956,48.5065,49.0289,49.5166,49.9926,50.5266,51.0259,51.5367,52.0359,52.5351,53.0228,53.522,54.0212,54.5205,55.0197,55.5189,56.0298,56.529,57.0398,57.539,58.0151,58.3982,58.8858,59.385,59.8378,60.279,60.7782,61.3936,61.8928,62.392,62.8912,63.3905,63.8433,64.2844,64.7837,65.3874,65.8866,66.3975,66.8851,67.3843,67.8371,68.2783,68.7775,69.3928,69.8921,70.3913,70.8905,71.3898,71.8425,72.2837,72.7829,73.3867,73.8859,74.3967,74.8844,75.3836,75.8364,76.2776,76.7768,77.276,77.7868,78.3906,78.9014,79.4006,79.8999,80.3875,80.8867,81.3976,81.92,82.396,82.8952,83.4061,83.9053,84.4045,84.8922,85.3333,85.7745,86.2621,86.7614,87.2954,87.7714,88.259,88.7467,89.2807,89.7683,90.2676,90.7552,91.2893,91.7769,92.2645,92.7521,93.2746,93.7622,94.273,94.7606,95.2947,95.7823,96.2699,96.7576,97.28,97.7676,98.2668,98.7545,99.3001,99.7645,100.2638,100.7514,101.2854,101.7615,102.2723,102.7599,103.294,103.7816,104.2692,104.7568,105.2793,105.7669,106.2661,106.7537,107.2994,107.7638,108.263,108.7507,109.2847,109.7723,110.26,110.7592,111.2932,111.7809,112.2569,112.7445,113.2785,113.7662,114.2654,114.753,115.2871,115.7631,116.2623,116.7499,117.2724,117.7484,118.2592,118.7585,119.2925,119.7801,120.2561,120.7554,121.2778,121.7654,122.2647,122.7523,123.2863,123.7624,124.2616,124.7492,125.2833,125.7825,126.2817,126.839,127.3963,127.9652,128.5341,129.0797,129.5441,130.0201,130.531,131.065,131.5527,132.0403,132.5395,133.0387,133.5263,134.0256,134.5364,135.0589,135.5581,136.0341,136.5449,137.0442,137.5318,138.0078,138.3445,138.8321,139.3313,139.8422,140.3414,140.829,141.3166,141.8391,142.3383,142.8259,143.3252,143.836,144.3352,144.8229,145.3221,145.8329,146.3438,146.8314,147.3306,147.8415,148.3407,148.8283,149.3159,149.8384,150.3376,150.8252,151.3244,151.8353,152.3345,152.8221,153.3214,153.8322,154.343,154.8307,155.3299,155.8407,156.34,156.8276,157.3152,157.8376,158.3369,158.8245,159.3121,159.8346,160.3338,160.8214,161.3206,161.8315,162.3423,162.8299,163.3176,163.84,164.3392,164.8268,165.3145,165.8369,166.3361,166.8238,167.323,167.8338,168.3447,168.8323,169.3199,169.8424,170.3416,170.8292,171.3168,171.8393,172.3385,172.8377,173.3254,173.8362,174.3354,174.8346,175.3223,175.8331,176.3439,176.8316,177.3192,177.8532,178.3641,179.0259,179.5367,180.0359,180.5351,181.0228,181.5336,182.0444,182.5321,183.0429,183.5189,184.0414,184.529,185.0514,185.539,186.0267,186.5259,187.0367,187.5476,188.0352,188.5228,189.0337,189.5329,190.0205,190.5197,191.0306,191.5414,192.029,192.5166,193.0275,193.5383,194.0259,194.5252,195.036,195.5468,196.0345,196.5221,197.0329,197.5322,198.0198,198.519,199.0298,199.5407,200.0283,200.5159,201.0268,201.5376,202.0252,202.5244,203.0237,203.5461,203.9989,204.5214,205.1483,205.6475,206.1468,206.6692,207.1568,207.54,208.0276,208.5268,209.026,209.5369,210.0245,210.5237,211.0113,211.499,211.9982,212.4742,213.0083,213.5191,214.0299,214.5176,215.0284,215.5276,216.0268,216.5261,217.0369,217.5245,218.0354,218.523,219.1383,219.5447,220.0207,220.5315,221.0191,221.4603,221.9015,222.4588,223.0161,223.4572,223.8868,224.4557,225.013,225.4658,225.9069,226.3946,226.917,227.4162,228.0316,228.5192,229.0184,229.5293,230.0285,230.5277,231.0269,231.5262,232.0254,232.5246,233.0239,233.5231,234.0339,234.5215,235.0208,235.4503,235.8799,236.414,237.0177,237.5285,238.0278,238.527,239.0262,239.5371,240.0363,240.5239,241.0231,241.5224,242.0332,242.5208,243.02,243.4496,243.8908,244.4249,245.017,245.5278,246.027,246.5263,247.0255,247.5363,248.0356,248.5232,249.0224,249.5216,250.0325,250.5201,251.0193,251.4489,251.8901,252.4241,253.0162,253.5271,254.0379,254.5255,255.0132,255.4427,255.8839,256.3367,256.7895,257.3235,257.7879,258.2872,258.7748,259.4017,259.8893,260.2957,260.7949,261.2709,261.7818,262.2926,262.7918,263.2795,263.7903,264.2895,264.8004,265.2764,265.7872,266.2864,266.9134,267.4242,267.9002,268.3878,268.8871,269.2702,269.781,270.2687,270.7795,271.2671,271.778,272.2656,272.7764,273.264,273.7749,274.2741,274.7849,275.2726,275.7834,276.271,276.7819,277.2695,277.7803,278.2679,278.7788,279.2664,279.7772,280.2765,280.7757,281.2749,281.7741,282.2734,282.7842,283.2718,283.7827,284.2703,284.7811,285.2688,285.7796,286.2672,286.778,287.2657,287.7765,288.2757,288.7866,289.2742,289.7734,290.2727,290.7835,291.2711,291.782,292.2696,292.7804,293.268,293.7789,294.2665,294.7773,295.2766,295.7758,296.275,296.7859,297.2735,297.7727,298.2719,298.8989,299.5258],"sections":[{"t_start":0.0,"t_end":50.3,"label":"INTRO","bar_start":1,"rms_rel":0.366,"duration_s":50.3,"beat_start":0,"beat_end":97},{"t_start":50.3,"t_end":84.1,"label":"CORPS","bar_start":25,"rms_rel":0.782,"duration_s":33.8,"beat_start":97,"beat_end":164},{"t_start":84.1,"t_end":124.2,"label":"CORPS","bar_start":42,"rms_rel":0.629,"duration_s":40.1,"beat_start":164,"beat_end":244},{"t_start":124.2,"t_end":186.3,"label":"CLIMAX","bar_start":62,"rms_rel":0.836,"duration_s":62.1,"beat_start":244,"beat_end":367},{"t_start":186.3,"t_end":201.8,"label":"BREAK","bar_start":92,"rms_rel":0.365,"duration_s":15.5,"beat_start":367,"beat_end":398},{"t_start":201.8,"t_end":218.7,"label":"BREAK","bar_start":100,"rms_rel":0.374,"duration_s":17.0,"beat_start":398,"beat_end":432},{"t_start":218.7,"t_end":226.9,"label":"RE-ENTR\u00c9E","bar_start":109,"rms_rel":0.513,"duration_s":8.2,"beat_start":432,"beat_end":448},{"t_start":226.9,"t_end":259.9,"label":"CLIMAX","bar_start":113,"rms_rel":0.816,"duration_s":33.0,"beat_start":448,"beat_end":514},{"t_start":259.9,"t_end":275.8,"label":"CORPS","bar_start":129,"rms_rel":0.642,"duration_s":15.8,"beat_start":514,"beat_end":546},{"t_start":275.8,"t_end":287.8,"label":"CLIMAX","bar_start":137,"rms_rel":0.883,"duration_s":12.0,"beat_start":546,"beat_end":570},{"t_start":287.8,"t_end":298.7,"label":"CLIMAX","bar_start":143,"rms_rel":0.918,"duration_s":11.0,"beat_start":570,"beat_end":592},{"t_start":298.7,"t_end":300.0,"label":"CODA","bar_start":149,"rms_rel":0.658,"duration_s":1.3,"beat_start":592,"beat_end":595}],"beats":{"marcacao":"000000000200000000000100000000100000002000000000000002000000001000020000001000002000010000200000001000020000000000020000010000000200000100000000000100000010001000000200001000001000100010000000010000000200000000000200000001000000100001000200000010000200000200010000000010000100010000001000010002000100010001000200000100000010000001000100010000000000010000000100000000000002000200020002000000000000002000020002000000020000000010000000000200000020002000000000020000200000000100020002000001000200000200000001000200020000020000000000200000001000000000010000100000020001000000010002000000000002000100020","doubles":"000000000000020000020000000200002000200002000020000000010000000100000010000000002000002000010000200000020000000002000001000000000001000001000000000200000010002000000200001000000000000010000000000000001000000010000100000000000000100000000000000001000200000000000000200000200000010001000100010001000000000002000100000100000000010000000000200000000000000001000000000000000000200000020000020002000002000100002000000000000200000100002000000200000000000002000000000000200000000100010001000002000100001000000020000200000100020000200000002000020000000000000000000000010002000200000000100000000001000200020","coupes":"000200002000000000200000000020002000200000020000000200020002000200020002000000100000000100000000200000002000010001000000000000000100000001000100000001000100001000000000100000000000000000000000000100001000000000000000000000000000000001000000000000000000200000200000100000000100010001000000010000000000000000000000000000000000010000000000000000000000000000010000000000000002000002000000000200000002000000001000001000000100000000000001000200000200000200000000000000200000000100001000000001000000001000000010000000010000020000002000000020000000000000010000000100010001000200000000000000010001000200001","repinike":"200002000002000002000000200000000000200000002000200000002000000200020002000100020002000200010002000000010000000000010000010000010000000001000000000010000000000000000000200000000000000000000000000000001000000000000000000000000000000000000000000000000100000000000000100000000100010000000000010000100000000000000200000001000100020001000000000000000000000000000010000000000001000001000000000100010001000000000000000000000000000000000100000000002000000200000000000000100000100000001000000001000000010000001000000010000002000200000200002000000001000000010001000000010001000100000001000100000001000100010","caixas":"000000200002000002000000200000000000200000002000000200000002000200020000002000020002000200020002000000100000000000100000010000000010000001000100000000000000000000000000200000000000000000000000000000001000000000000000000000000000000000000000000000000100000000000000100000000100001000100000010000100010000000100010000001000100010000000000000000000100000000000010000000000000000100000000000000010000000000000000000000000000000000000000100000000000000200000000000000100000100000001000000010000000100000001000000010000000000200000200020000010001000100010001000000010001000100000001000100000001000100000","clave":"202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202202202022022020220220202"}};
 
 const INSTS = [
   { key:'marcacao', name:'Marcação',  sub:'Surdo grave',   rgb:'224,56,70'   },
@@ -325,8 +330,9 @@ const SEC_COL = {
 const CW=32, CG=3, BG=10, LW=120, BPB=4;
 const BEAT_PX = CW+CG;
 const BAR_PX  = BPB*BEAT_PX - CG + BG;
-const N = D.n;
-const BT = D.beat_times;
+let D = DEMO;          // partition courante (mutable : démo ou analyse navigateur)
+let N = D.n;
+let BT = D.beat_times;
 const PLAYHEAD_FRAC = 0.32;
 
 /* ── WEB AUDIO ──────────────────────────────── */
@@ -411,6 +417,7 @@ document.addEventListener('drop', e => {
 let playing = false, rafId = null, lastBeat = -1, trailBeats = [], scrollX = 0;
 let perfStart = 0, perfOffset = 0; // fallback clock
 let focus = null; // section isolée : {start, end} en beats (end exclusif)
+let lastAnalysis = null; // intermédiaires d'analyse (enveloppes) pour re-calcul tempo sans re-filtrer
 
 function currentAudioPos() {
   if (audioSource && actx) {
@@ -443,7 +450,7 @@ const secPill        = document.getElementById('secPill');
 const scrub          = document.getElementById('scrub');
 const scrubFill      = document.getElementById('scrubFill');
 const volSlider      = document.getElementById('vol');
-const cells          = {};
+let   cells          = {};
 
 function updateUI(bi, at) {
   if (bi !== lastBeat) {
@@ -548,46 +555,18 @@ function jumpTo(bi) {
   updateUI(cl, startAt);
 }
 
-/* ── BUILD TRACKS ───────────────────────────── */
+/* ── ÉLÉMENTS & ÉTAT ─────────────────────────── */
 const rulerInner    = document.getElementById('rulerInner');
 const secBandInner  = document.getElementById('secBandInner');
 const tracksInner   = document.getElementById('tracksInner');
-let soloedInst = null;
+const sectionNav    = document.getElementById('sectionNav');
+let soloedInst = null, mergedSecs = [], chipEls = [], allChip = null;
 
-// Ruler
-for (let b=0;b<Math.ceil(N/BPB);b++) {
-  const bl=document.createElement('div'); bl.className='bar-label'; bl.style.cssText=`width:${BAR_PX}px;position:relative`;
-  const bn=document.createElement('span'); bn.className='bar-num'; bn.textContent='m.'+(b+1); bl.appendChild(bn);
-  for(let i=0;i<BPB;i++){const t=document.createElement('div'); t.className='beat-tick'+(i===0?' b1':''); t.textContent=i+1; bl.appendChild(t);}
-  rulerInner.appendChild(bl);
-}
+// Metro dots (4 temps/mesure) — construits une seule fois
+const metroEl=document.getElementById('metro'); const mdots=[];
+for(let i=0;i<BPB;i++){const d=document.createElement('div');d.className='mdot'+(i===0?' b1':'');metroEl.appendChild(d);mdots.push(d);}
 
-// Section band
-D.sections.forEach((sec,i)=>{
-  const next=D.sections[i+1]; const span=(next?next.beat_start:N)-sec.beat_start;
-  const el=document.createElement('div');
-  el.style.cssText=`width:${Math.ceil(span/BPB)*BAR_PX}px;height:100%;background:rgba(${SEC_COL[sec.label]||'80,80,80'},0.75);flex-shrink:0;cursor:pointer;`;
-  el.title=sec.label; el.addEventListener('click',()=>jumpTo(sec.beat_start)); secBandInner.appendChild(el);
-});
-
-// Tracks
-INSTS.forEach(inst=>{
-  if (inst.isClave){const s=document.createElement('div');s.className='clave-sep';tracksInner.appendChild(s);}
-  cells[inst.key]=new Array(N);
-  const row=document.createElement('div'); row.className='track'; row.dataset.key=inst.key; row.style.setProperty('--ic',inst.rgb);
-  row.innerHTML=`<div class="track-label"><div class="t-dot" style="background:rgb(${inst.rgb});box-shadow:0 0 5px rgba(${inst.rgb},0.5)"></div><div class="t-info"><span class="t-name" style="color:rgb(${inst.rgb})">${inst.name}</span><span class="t-sub">${inst.sub}</span></div></div>`;
-  const wrap=document.createElement('div'); wrap.className='track-cells';
-  for(let bi=0;bi<N;bi++){
-    if(bi%BPB===0){const bg=document.createElement('div');bg.className='bar-cells';wrap.appendChild(bg);}
-    const cell=document.createElement('div');
-    const lvl=parseInt(D.beats[inst.key]?.[bi]||'0');
-    cell.className=`cell l${lvl}`; cell.style.setProperty('--ic',inst.rgb);
-    wrap.lastChild.appendChild(cell); cells[inst.key][bi]=cell;
-  }
-  row.appendChild(wrap); tracksInner.appendChild(row);
-});
-
-// Solo buttons
+// Boutons solo — construits une seule fois (re-ciblent .track dynamiquement)
 const soloGroup=document.querySelector('.solo-group');
 INSTS.filter(i=>!i.isClave).forEach(inst=>{
   const btn=document.createElement('button'); btn.className='solo-btn';
@@ -599,37 +578,72 @@ INSTS.filter(i=>!i.isClave).forEach(inst=>{
   soloGroup.appendChild(btn);
 });
 
-/* ── SECTION FOCUS (vue par section) ─────────── */
-// Fusionne les sections consécutives de même label en une seule plage navigable
-const mergedSecs = (() => {
-  const out = [];
-  D.sections.forEach(s => {
-    const last = out[out.length-1];
-    if (last && last.label === s.label && last.beat_end === s.beat_start) {
-      last.beat_end = s.beat_end;
-    } else {
-      out.push({ label:s.label, beat_start:s.beat_start, beat_end:s.beat_end, bar:s.bar_start });
+/* ── BUILDERS (rejoués à chaque partition) ────── */
+function buildRuler() {
+  rulerInner.innerHTML='';
+  for (let b=0;b<Math.ceil(N/BPB);b++) {
+    const bl=document.createElement('div'); bl.className='bar-label'; bl.style.cssText=`width:${BAR_PX}px;position:relative`;
+    const bn=document.createElement('span'); bn.className='bar-num'; bn.textContent='m.'+(b+1); bl.appendChild(bn);
+    for(let i=0;i<BPB;i++){const t=document.createElement('div'); t.className='beat-tick'+(i===0?' b1':''); t.textContent=i+1; bl.appendChild(t);}
+    rulerInner.appendChild(bl);
+  }
+}
+function buildBand() {
+  secBandInner.innerHTML='';
+  D.sections.forEach((sec,i)=>{
+    const next=D.sections[i+1]; const span=(next?next.beat_start:N)-sec.beat_start;
+    const el=document.createElement('div');
+    el.style.cssText=`width:${Math.ceil(span/BPB)*BAR_PX}px;height:100%;background:rgba(${SEC_COL[sec.label]||'80,80,80'},0.75);flex-shrink:0;cursor:pointer;`;
+    el.title=sec.label; el.addEventListener('click',()=>jumpTo(sec.beat_start)); secBandInner.appendChild(el);
+  });
+}
+function buildTracks() {
+  tracksInner.innerHTML=''; cells={};
+  INSTS.forEach(inst=>{
+    if (inst.isClave){const s=document.createElement('div');s.className='clave-sep';tracksInner.appendChild(s);}
+    cells[inst.key]=new Array(N);
+    const row=document.createElement('div'); row.className='track'; row.dataset.key=inst.key; row.style.setProperty('--ic',inst.rgb);
+    row.innerHTML=`<div class="track-label"><div class="t-dot" style="background:rgb(${inst.rgb});box-shadow:0 0 5px rgba(${inst.rgb},0.5)"></div><div class="t-info"><span class="t-name" style="color:rgb(${inst.rgb})">${inst.name}</span><span class="t-sub">${inst.sub}</span></div></div>`;
+    const wrap=document.createElement('div'); wrap.className='track-cells';
+    for(let bi=0;bi<N;bi++){
+      if(bi%BPB===0){const bg=document.createElement('div');bg.className='bar-cells';wrap.appendChild(bg);}
+      const cell=document.createElement('div');
+      const lvl=parseInt(D.beats[inst.key]?.[bi]||'0');
+      cell.className=`cell l${lvl}`; cell.style.setProperty('--ic',inst.rgb);
+      cell.dataset.k=inst.key; cell.dataset.bi=bi;
+      wrap.lastChild.appendChild(cell); cells[inst.key][bi]=cell;
     }
+    row.appendChild(wrap); tracksInner.appendChild(row);
+  });
+}
+
+/* ── SECTION FOCUS (vue par section) ─────────── */
+function mergeSections(secs){
+  const out=[];
+  secs.forEach(s=>{
+    const last=out[out.length-1];
+    if(last && last.label===s.label && last.beat_end===s.beat_start){ last.beat_end=s.beat_end; }
+    else out.push({label:s.label, beat_start:s.beat_start, beat_end:s.beat_end, bar:s.bar_start});
   });
   return out;
-})();
-
-const sectionNav = document.getElementById('sectionNav');
-const chipEls = [];
-const allChip = document.createElement('button');
-allChip.className = 'sec-chip focused'; allChip.textContent = 'Tout';
-allChip.addEventListener('click', clearFocus);
-sectionNav.appendChild(allChip);
-mergedSecs.forEach(ms => {
-  const col = SEC_COL[ms.label] || '120,120,140';
-  const chip = document.createElement('button');
-  chip.className = 'sec-chip'; chip._ms = ms;
-  chip.style.borderColor = `rgba(${col},0.4)`;
-  chip.innerHTML = `<span class="dot" style="background:rgb(${col})"></span>${ms.label}<span class="mno">m.${ms.bar}</span>`;
-  chip.addEventListener('click', () => toggleFocus(ms));
-  sectionNav.appendChild(chip); chipEls.push(chip);
-});
-
+}
+function buildChips(){
+  sectionNav.innerHTML=''; chipEls=[];
+  mergedSecs = mergeSections(D.sections);
+  allChip = document.createElement('button');
+  allChip.className='sec-chip focused'; allChip.textContent='Tout';
+  allChip.addEventListener('click', clearFocus);
+  sectionNav.appendChild(allChip);
+  mergedSecs.forEach(ms=>{
+    const col=SEC_COL[ms.label]||'120,120,140';
+    const chip=document.createElement('button');
+    chip.className='sec-chip'; chip._ms=ms;
+    chip.style.borderColor=`rgba(${col},0.4)`;
+    chip.innerHTML=`<span class="dot" style="background:rgb(${col})"></span>${ms.label}<span class="mno">m.${ms.bar}</span>`;
+    chip.addEventListener('click',()=>toggleFocus(ms));
+    sectionNav.appendChild(chip); chipEls.push(chip);
+  });
+}
 function clampToFocus(bi) {
   if (focus) return Math.max(focus.start, Math.min(bi, focus.end-1));
   return Math.max(0, Math.min(bi, N-1));
@@ -646,7 +660,7 @@ function clearFocus() {
 }
 function applyFaded() {
   for (const inst of INSTS) {
-    const arr = cells[inst.key];
+    const arr = cells[inst.key]; if(!arr) continue;
     for (let bi=0; bi<N; bi++) {
       const c = arr[bi]; if (!c) continue;
       c.classList.toggle('faded', !!focus && (bi < focus.start || bi >= focus.end));
@@ -654,18 +668,28 @@ function applyFaded() {
   }
 }
 function updateChips() {
-  allChip.classList.toggle('focused', !focus);
+  if(allChip) allChip.classList.toggle('focused', !focus);
   chipEls.forEach(ch => {
     const ms = ch._ms;
     ch.classList.toggle('focused', !!focus && focus.start === ms.beat_start);
     ch.classList.toggle('current', lastBeat >= ms.beat_start && lastBeat < ms.beat_end);
   });
 }
-updateChips();
 
-// Metro dots
-const metroEl=document.getElementById('metro'); const mdots=[];
-for(let i=0;i<BPB;i++){const d=document.createElement('div');d.className='mdot'+(i===0?' b1':'');metroEl.appendChild(d);mdots.push(d);}
+/* ── BUILD SCORE : reconstruit toute la partition depuis un objet D ── */
+function buildScore(d){
+  if (playing) stopPlay();
+  D = d; N = D.n; BT = D.beat_times;
+  lastBeat = -1; trailBeats = []; scrollX = 0; focus = null;
+  tracksInner.style.transform='translateX(0)'; rulerInner.style.transform='translateX(0)'; secBandInner.style.transform='translateX(0)';
+  buildRuler(); buildBand(); buildTracks(); buildChips();
+  soloedInst=null;
+  document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));
+  scrub.min=0; scrub.max=Math.max(1,N-1); scrub.value=0;
+  updateChips();
+  updateUI(0, BT[0]);
+}
 
 /* ── CONTROLS ─────────────────────────────── */
 playBtn.addEventListener('click',()=>playing?stopPlay():startPlay());
@@ -687,7 +711,52 @@ document.addEventListener('keydown',e=>{
   if(e.code==='Home'){jumpTo(focus?focus.start:0);if(playing)stopPlay();}
 });
 
-updateUI(0, BT[0]);
+/* ── ÉDITEUR DE VALIDATION (Phase 1) ──────────── */
+/*
+  La détection auto ne suffit pas pour des frappes justes. Ici un humain qui
+  connaît le morceau corrige : clic sur une cellule cycle repos → medium → accent.
+  C'est ce qui garantit la précision pédagogique. Les patterns corrigés sont
+  exportables (presse-papier) en attendant la persistance backend (Phase 4).
+*/
+let editMode = false;
+const editBtn = document.getElementById('editBtn');
+const expBtn  = document.getElementById('expBtn');
+
+function setEditMode(on) {
+  editMode = on;
+  document.body.classList.toggle('editing', on);
+  editBtn.classList.toggle('on', on);
+  editBtn.textContent = on ? '✓ Édition active' : '✏️ Éditer';
+  expBtn.style.display = on ? '' : 'none';
+  if (on && playing) stopPlay();
+  if (on) setStatus('ok', 'Édition : clic sur une case pour cycler repos → medium → accent');
+}
+editBtn.addEventListener('click', () => setEditMode(!editMode));
+
+// Clic délégué sur la zone des pistes (survit aux reconstructions de buildScore)
+tracksInner.addEventListener('click', e => {
+  if (!editMode) return;
+  const c = e.target.closest('.cell'); if (!c) return;
+  const k = c.dataset.k, bi = +c.dataset.bi;
+  if (k === 'clave') return; // la clave est une référence générée, non éditable
+  const s = D.beats[k] || ''.padEnd(N, '0');
+  const cur = parseInt(s[bi] || '0'); const nxt = (cur + 1) % 3;
+  D.beats[k] = s.substring(0, bi) + nxt + s.substring(bi + 1);
+  c.classList.remove('l0', 'l1', 'l2'); c.classList.add('l' + nxt);
+});
+
+expBtn.addEventListener('click', () => {
+  const json = JSON.stringify(D.beats);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(json).then(
+      () => setStatus('ok', 'Patterns corrigés copiés dans le presse-papier'),
+      () => setStatus('err', 'Copie impossible — voir la console'),
+    );
+  }
+  console.log('beats =', json);
+});
+
+buildScore(DEMO);
 </script>
 </body>
 </html>
