@@ -1,5 +1,9 @@
 .git
 .gitignore
+.vercel
+.env.local
+node_modules
 README.md
+PROJECT.md
 music tracks
 que-calor-brief-claude-code.md

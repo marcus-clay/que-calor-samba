@@ -2,3 +2,4 @@
 MASTER_4_QUE_CALOR.m4a
 *.m4a
 .vercel
+.env*.local
