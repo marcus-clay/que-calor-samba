@@ -13,8 +13,10 @@ dépendance » du brief d'origine. Choix assumé pour passer d'une démo à un p
 |---|---|---|
 | Modèle | Bibliothèque partagée multi-morceaux | Un produit, pas une démo jetable |
 | Frontend | Vanilla JS, 2 écrans (Index + Partition) | Fidèle à l'esprit « pas de framework » |
-| Backend | Vercel Blob (audio) + Vercel KV (index + analyse) | Stockage partagé sans serveur dédié |
-| Accès | Mot de passe partagé (passphrase orchestre) | Simple, suffisant pour un groupe fermé |
+| Backend | Vercel Blob seul (audio + 1 JSON d'analyse par morceau) | Pas de KV : moins de provisioning, l'index = list() des JSON |
+| Accès | Mot de passe partagé, cookie de session signé HMAC | Simple, suffisant pour un groupe fermé |
+| Upload audio | SDK @vercel/blob/client en import ESM CDN (esm.sh), client → Blob direct | Contourne la limite 4,5 Mo des fonctions, sans build frontend |
+| Structure | index.html + audio à la racine, /api (fonctions), /lib | Vercel sert le statique racine + les fonctions, pas de /public |
 | **Frappes** | **Patterns canoniques + éditeur de validation humaine** | La détection auto seule ne dépasse pas ~80 % sur les surdos qui se chevauchent. Inacceptable pour l'apprentissage. La précision vient d'un humain qui valide. |
 | Analyse navigateur | Tempo, grille de beats, sections seulement | Cale les patterns sur l'audio, n'invente pas les frappes |
 | Clock | Web Audio `AudioContext.currentTime`, seul maître | Zéro drift, pas de `setInterval` pour les visuels |
@@ -38,10 +40,12 @@ la détection produit un brouillon, l'humain garantit la justesse.
   correction de tempo ×2 / ÷2 (erreurs d'octave).
 - **Phase 3 — Bibliothèque + 2 écrans** : Index + Partition, persistance locale
   IndexedDB d'abord (étape de dev vers le backend partagé).
-- **Phase 4 — Backend partagé** : Vercel Blob + KV + routes API + mot de passe.
-  Migration de la persistance locale vers partagée.
+- **Phase 4 — Backend partagé** : Vercel Blob + routes API + mot de passe. ✅
+  Login, CRUD morceaux, upload audio direct vers Blob. Testé de bout en bout.
 - **Phase 5 — Patterns canoniques** : patterns traditionnels par instrument,
   appliqués et alignés comme point de départ d'édition.
+
+Phases 0 à 4 livrées et déployées. Reste P5.
 
 ## Stack de déploiement
 
