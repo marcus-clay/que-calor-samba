@@ -1,5 +1,15 @@
-# Audio source (11 MB, non versionné — à déposer manuellement pour le son)
-MASTER_4_QUE_CALOR.m4a
+# Audio du répertoire : jamais versionné ni déployé (volumineux).
+# Déposer les dossiers de morceaux dans « music tracks/ », un sous-dossier par morceau.
+music tracks/
 *.m4a
+*.wav
+*.mp3
+*.aif
+*.aiff
+*.flac
+*.ogg
+
+# Vercel / secrets
 .vercel
 .env*.local
+node_modules
