@@ -14,7 +14,7 @@
   --text:    #e2e2ec;
   --dim:     #44445e;
   --mid:     #7878a0;
-  --cw: 32px; --ch: 40px; --cr: 5px; --cg: 3px;
+  --cw: 32px; --ch: 50px; --cr: 6px; --cg: 3px;
   --bg-gap: 10px; --lw: 120px; --tr-gap: 6px;
   --transport: 72px;
 }
@@ -54,13 +54,13 @@ html, body {
 .lib-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 18px; }
 .lib-meta { font-size: 10px; color: var(--mid); display: flex; flex-direction: column; gap: 3px; }
 .lib-badge { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); }
-.lib-card.demo { border-color: rgba(224,56,70,0.35); }
+/* carte démo : même style que les autres */
 .lib-card .del { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border: none; background: transparent; color: var(--dim); cursor: pointer; font-size: 12px; border-radius: 5px; line-height: 1; }
 .lib-card .del:hover { color: #e83a4a; background: rgba(232,58,74,0.12); }
 .card-pv { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
-.pv-btn { width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border2); background: transparent; color: var(--text); font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding-left: 1px; }
-.pv-btn:hover { border-color: var(--mid); }
-.pv-bar { flex: 1; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+.pv-btn { width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; border: 1px solid var(--border2); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.15s, background 0.15s; }
+.pv-btn:hover { border-color: var(--mid); background: rgba(255,255,255,0.04); }
+.pv-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; cursor: pointer; position: relative; }
 .pv-fill { height: 100%; width: 0; background: rgb(224,56,70); border-radius: 2px; pointer-events: none; }
 #libFile { display: none; }
 #backBtn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border2); background: transparent; color: var(--mid); font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
@@ -82,14 +82,16 @@ html, body {
   background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
   color: var(--mid); transition: all 0.3s; white-space: nowrap;
 }
-.solo-group { display: flex; gap: 4px; }
+.solo-group { display: flex; gap: 5px; }
 .solo-btn {
-  height: 24px; padding: 0 8px; border-radius: 4px;
-  border: 1px solid var(--border2); background: transparent;
-  font-size: 9px; font-weight: 700; cursor: pointer; color: var(--mid);
-  transition: all 0.15s; white-space: nowrap;
+  height: 32px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid rgba(var(--ic),0.4); background: rgba(var(--ic),0.06);
+  font-size: 10px; font-weight: 700; cursor: pointer; color: rgb(var(--ic));
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+  white-space: nowrap; letter-spacing: 0.2px;
 }
-.solo-btn.on { color: #fff; }
+.solo-btn:active { transform: scale(0.96); }
+.solo-btn.on { background: rgb(var(--ic)); color: #0c0c0f; border-color: rgb(var(--ic)); box-shadow: 0 0 14px rgba(var(--ic),0.55); }
 
 /* ── AUDIO STATUS BAR ── */
 #audioBar {
@@ -317,6 +319,23 @@ button:active { transform: scale(0.97); }
   #loadBtn:hover, #editBtn:hover, #expBtn:hover, #demoBtn:hover, .lib-card:hover, .sec-chip:hover, .pv-btn:hover, #bpmBox button:hover { border-color: var(--border2); color: var(--mid); }
 }
 
+/* ── MÉTRONOME (toggle) ── */
+#metroBtn { width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.1s; }
+#metroBtn:active { transform: scale(0.96); }
+#metroBtn.on { color: #0c0c0f; background: #d4a820; border-color: #d4a820; box-shadow: 0 0 12px rgba(212,168,32,0.5); }
+
+/* ── DÉCOMPTE (count-in 2 mesures) ── */
+#countin { position: absolute; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; pointer-events: none; background: rgba(8,8,12,0.35); }
+#countin.on { display: flex; }
+#ciNum { font-size: 120px; font-weight: 800; color: rgba(255,255,255,0.95); font-variant-numeric: tabular-nums; line-height: 1; }
+#ciNum.beat { animation: ciPop 160ms cubic-bezier(0.23,1,0.32,1); }
+@keyframes ciPop { from { transform: scale(0.6); opacity: 0.3; } to { transform: scale(1); opacity: 1; } }
+#ciSub { position: absolute; bottom: 26%; font-size: 11px; letter-spacing: 2px; color: var(--mid); text-transform: uppercase; }
+
+/* zone partition saisissable (drag-to-seek) */
+#tracksScroll { cursor: grab; }
+#tracksScroll.grabbing { cursor: grabbing; }
+
 /* ── VIEWPORT MOBILE (≤ 600px) — pouce, Apple HIG ── */
 @media (max-width: 600px) {
   /* Topbar compacte : titre tronqué, solo en défilement horizontal */
@@ -326,7 +345,9 @@ button:active { transform: scale(0.97); }
   #backBtn { width: 40px; height: 40px; }
   .solo-group { overflow-x: auto; flex-wrap: nowrap; min-width: 0; -webkit-overflow-scrolling: touch; }
   .solo-group::-webkit-scrollbar { height: 0; }
-  .solo-btn { height: 32px; padding: 0 11px; }
+  .solo-btn { height: 36px; padding: 0 13px; font-size: 11px; }
+  #metroBtn { width: 40px; height: 40px; }
+  #ciNum { font-size: 90px; }
   #secPill { display: none; }
   /* Barre audio : ne garder que l'état ; actions secondaires masquées sur mobile */
   #audioBar { height: 30px; padding: 0 10px; }
@@ -343,8 +364,10 @@ button:active { transform: scale(0.97); }
   #scrub::-webkit-slider-thumb { width: 22px; height: 22px; }
   /* Bibliothèque : cartes plus grandes, pré-écoute confortable au pouce */
   #libGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .pv-btn { width: 32px; height: 32px; }
-  #libAddBtn { height: 40px; }
+  .pv-btn { width: 44px; height: 44px; }
+  #libAddBtn { height: 44px; }
+  .lib-card h3 { font-size: 14px; }
+  .card-pv { margin-top: 12px; }
 }
 </style>
 </head>
@@ -379,6 +402,7 @@ button:active { transform: scale(0.97); }
     <div class="title-stack"><h1>Que Calor</h1><span class="sub">Samba-Reggae</span></div>
     <div class="solo-group"></div>
     <div class="spacer"></div>
+    <button id="metroBtn" title="Métronome"></button>
     <div id="secPill">INTRO</div>
   </div>
 
@@ -407,6 +431,7 @@ button:active { transform: scale(0.97); }
     <div id="tracksScroll">
       <div id="trackLabels"></div>
       <div id="tracksInner"></div>
+      <div id="countin"><div id="ciNum"></div><div id="ciSub">décompte · 2 mesures</div></div>
       <div id="playhead"></div>
     </div>
   </div>
@@ -449,7 +474,7 @@ const DEMO = {"tempo":120.18531976744185,"duration":300.0,"n":597,"beat_times":[
 const INSTS = [
   { key:'marcacao', name:'Marcação',  sub:'Surdo grave',   rgb:'224,56,70'   },
   { key:'doubles',  name:'Doubles',   sub:'Contrechant',   rgb:'228,116,40'  },
-  { key:'coupes',   name:'Coupés',    sub:'Accent',        rgb:'204,160,28'  },
+  { key:'coupes',   name:'Coupes',    sub:'Accent',        rgb:'204,160,28'  },
   { key:'repinike', name:'Repinike',  sub:'Lead · breaks', rgb:'68,136,236'  },
   { key:'caixas',   name:'Caixas',    sub:'Caisse claire', rgb:'28,188,152'  },
   { key:'clave',    name:'Clave',     sub:'Référence',     rgb:'180,180,200', isClave:true },
@@ -458,6 +483,9 @@ const SEC_COL = {
   INTRO:'90,90,170', CORPS:'68,136,236', CLIMAX:'224,56,70',
   BREAK:'38,38,56', 'RE-ENTRÉE':'204,160,28', CODA:'130,130,160'
 };
+// Libellé d'affichage des sections (données internes inchangées)
+const SEC_LABEL = { CORPS:'TOURNE' };
+const secLabel = l => SEC_LABEL[l] || l;
 
 const CW=32, CG=3, BG=10, LW=120, BPB=4;
 const BEAT_PX = CW+CG;
@@ -483,6 +511,7 @@ const ICONS = {
   'trash-2':'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
   music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
   plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  metronome:'<path d="M8 21h8"/><path d="M9 21 11 5h2l2 16"/><path d="M11.2 9 16 6"/>',
 };
 function icon(name, size=16){ return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
 
@@ -511,19 +540,41 @@ function getCtx() {
   return actx;
 }
 
-// Solo audio : filtre la lecture sur la bande de l'instrument soloé (même bandes que l'analyse)
+// Solo audio : filtre la lecture sur la bande de l'instrument soloé (mêmes bandes que l'analyse).
+// Cas clave : elle n'est pas dans l'enregistrement → on coupe la musique et on joue des clics synthétisés.
 function applySoloAudio() {
   if (!filterNode || !actx) return;
-  const band = typeof A_BANDS !== 'undefined' ? A_BANDS[soloedInst] : null;
-  if (soloedInst && band) {
-    const f0 = Math.sqrt(band[0] * band[1]), Q = Math.max(0.7, f0 / (band[1] - band[0]));
-    filterNode.type = 'bandpass';
-    filterNode.frequency.setValueAtTime(f0, actx.currentTime);
-    filterNode.Q.setValueAtTime(Q, actx.currentTime);
-  } else {
+  const band = (typeof A_BANDS !== 'undefined') ? A_BANDS[soloedInst] : null;
+  if (soloedInst === 'clave') {
     filterNode.type = 'allpass';
+    if (gainNode) gainNode.gain.setTargetAtTime(0.0001, actx.currentTime, 0.02);
+  } else {
+    if (gainNode) gainNode.gain.setTargetAtTime(parseFloat(volSlider.value), actx.currentTime, 0.02);
+    if (soloedInst && band) {
+      const f0 = Math.sqrt(band[0] * band[1]), Q = Math.max(0.7, f0 / (band[1] - band[0]));
+      filterNode.type = 'bandpass';
+      filterNode.frequency.setValueAtTime(f0, actx.currentTime);
+      filterNode.Q.setValueAtTime(Q, actx.currentTime);
+    } else {
+      filterNode.type = 'allpass';
+    }
   }
 }
+
+// Clic synthétisé (bois aigu, déclin court) à un instant ctx donné. Niveau 2 = accent plus aigu/fort.
+function scheduleClick(t, level) {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'square';
+  o.frequency.value = level === '2' ? 2000 : 1400;
+  const peak = level === '2' ? 0.5 : 0.3;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t); o.stop(t + 0.06);
+}
+function playClick(level) { if (actx) scheduleClick(actx.currentTime, level); }
 
 function setStatus(state, text) {
   const dot  = document.getElementById('audioDot');
@@ -621,6 +672,10 @@ let   cells          = {};
 
 function updateUI(bi, at) {
   if (bi !== lastBeat) {
+    if (playing && !dragging && !countinUntil && actx) {
+      if (soloedInst === 'clave') { const lv = D.beats.clave && D.beats.clave[bi]; if (lv && lv !== '0') playClick(lv); }
+      if (metroOn) playClick(bi % BPB === 0 ? '2' : '1');
+    }
     [...trailBeats, lastBeat].forEach(b => {
       if(b<0) return;
       INSTS.forEach(i => cells[i.key][b]?.classList.remove('active','t1','t2','t3'));
@@ -635,11 +690,12 @@ function updateUI(bi, at) {
     mdots.forEach((d,i)=>{d.classList.toggle('on',i===beat); d.style.background=i===beat?(beat===0?'rgb(224,56,70)':'rgba(255,255,255,0.7)'):'rgba(255,255,255,0.1)';});
     posDisp.textContent = String(Math.floor(bi/BPB)+1).padStart(3,'0')+'.'+(bi%BPB+1);
     const sec=sectionFor(bi), col=SEC_COL[sec.label]||'80,80,80';
-    secPill.textContent=sec.label; secPill.style.background=`rgba(${col},0.18)`; secPill.style.borderColor=`rgba(${col},0.5)`; secPill.style.color=`rgb(${col})`;
+    secPill.textContent=secLabel(sec.label); secPill.style.background=`rgba(${col},0.18)`; secPill.style.borderColor=`rgba(${col},0.5)`; secPill.style.color=`rgb(${col})`;
     scrub.value=bi; scrubFill.style.width=((bi/(N-1))*100)+'%';
     lastBeat = bi;
     updateChips();
   }
+  if (dragging) { playhead.style.left = (dragX - 1) + 'px'; return; } // saisie directe : la tête suit le doigt, scroll figé
   const px  = lerpX(at);
   const ts  = Math.max(0, px - tracksScrollEl.clientWidth*PLAYHEAD_FRAC);
   scrollX  += (ts-scrollX)*0.13;
@@ -652,6 +708,19 @@ function updateUI(bi, at) {
 
 function rafLoop() {
   if (!playing) return;
+  if (dragging) { rafId = requestAnimationFrame(rafLoop); return; } // la saisie directe pilote l'affichage
+  // Phase de décompte (count-in) : la tête reste au début, gros chiffre par temps
+  if (countinUntil) {
+    if (actx && actx.currentTime < countinUntil) {
+      const beatsLeft = Math.max(1, Math.ceil((countinUntil - actx.currentTime) / countinP));
+      const num = ((8 - beatsLeft) % BPB) + 1;
+      const el = document.getElementById('ciNum');
+      if (el.textContent !== String(num)) { el.textContent = num; el.classList.remove('beat'); void el.offsetWidth; el.classList.add('beat'); }
+      updateUI(0, BT[0]);
+      rafId = requestAnimationFrame(rafLoop); return;
+    }
+    countinUntil = 0; document.getElementById('countin').classList.remove('on'); lastBeat = -1;
+  }
   const at = currentAudioPos();
   // Vue par section : on s'arrête en fin de section et on revient à son début (clock audio seul juge)
   if (focus) {
@@ -695,6 +764,7 @@ function stopPlay() {
   playing = false;
   if (audioSource) { try{audioSource.onended=null;audioSource.stop();}catch(e){} audioSource=null; }
   if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
+  if (countinUntil) { countinUntil = 0; document.getElementById('countin').classList.remove('on'); }
   playBtn.innerHTML = icon('play',22); playBtn.classList.remove('playing');
 }
 
@@ -722,12 +792,40 @@ function jumpTo(bi) {
   updateUI(cl, startAt);
 }
 
+// Démarrage avec décompte de 2 mesures (8 temps) puis lancement précis sur le 1er temps (BT[0]).
+function startWithCountIn() {
+  if (playing) return;
+  const c = getCtx();
+  const span = Math.min(8, Math.max(1, N - 1));
+  countinP = Math.max(0.18, (BT[span] - BT[0]) / span); // secondes par temps
+  const beats = 2 * BPB;                                 // 2 mesures
+  const t0 = c.currentTime + 0.12;
+  for (let k = 0; k < beats; k++) scheduleClick(t0 + k * countinP, (k % BPB === 0) ? '2' : '1');
+  const musicAt = t0 + beats * countinP;
+  playing = true; lastBeat = -1; trailBeats = []; scrollX = 0;
+  if (audioBuffer) {
+    if (audioSource) { try { audioSource.onended = null; audioSource.stop(); } catch (e) {} }
+    audioSource = c.createBufferSource(); audioSource.buffer = audioBuffer; audioSource.connect(filterNode);
+    sourceStartAudio = BT[0]; sourceStartCtx = musicAt;
+    audioSource.start(musicAt, BT[0]);
+    audioSource.onended = () => { if (playing) stopPlay(); };
+  } else {
+    perfOffset = BT[0]; perfStart = performance.now() + beats * countinP * 1000;
+  }
+  playBtn.innerHTML = icon('pause', 22); playBtn.classList.add('playing');
+  countinUntil = musicAt;
+  document.getElementById('ciNum').textContent = '';
+  document.getElementById('countin').classList.add('on');
+  rafId = requestAnimationFrame(rafLoop);
+}
+
 /* ── ÉLÉMENTS & ÉTAT ─────────────────────────── */
 const rulerInner    = document.getElementById('rulerInner');
 const secBandInner  = document.getElementById('secBandInner');
 const tracksInner   = document.getElementById('tracksInner');
 const sectionNav    = document.getElementById('sectionNav');
 let soloedInst = null, mergedSecs = [], chipEls = [], allChip = null;
+let metroOn = false, countinUntil = 0, countinP = 0.5, dragging = false, dragX = 0;
 
 // Metro dots (4 temps/mesure) — construits une seule fois
 const metroEl=document.getElementById('metro'); const mdots=[];
@@ -735,12 +833,19 @@ for(let i=0;i<BPB;i++){const d=document.createElement('div');d.className='mdot'+
 
 // Boutons solo — construits une seule fois (re-ciblent .track dynamiquement)
 const soloGroup=document.querySelector('.solo-group');
-INSTS.filter(i=>!i.isClave).forEach(inst=>{
-  const btn=document.createElement('button'); btn.className='solo-btn';
-  btn.textContent=inst.name; btn.style.color=`rgb(${inst.rgb})`; btn.style.borderColor=`rgba(${inst.rgb},0.35)`;
+INSTS.forEach(inst=>{
+  const btn=document.createElement('button'); btn.className='solo-btn'; btn.dataset.key=inst.key;
+  btn.textContent=inst.name; btn.style.setProperty('--ic', inst.rgb);
   btn.addEventListener('click',()=>{
-    if(soloedInst===inst.key){soloedInst=null;document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));}
-    else{soloedInst=inst.key;document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');btn.style.borderColor=`rgb(${inst.rgb})`;document.querySelectorAll('.track').forEach(t=>t.classList.toggle('dimmed',t.dataset.key!==inst.key&&t.dataset.key!=='clave'));}
+    const wasOn = soloedInst===inst.key;
+    document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));
+    if(wasOn){
+      soloedInst=null;
+      document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));
+    } else {
+      soloedInst=inst.key; btn.classList.add('on');
+      document.querySelectorAll('.track').forEach(t=>t.classList.toggle('dimmed', t.dataset.key!==inst.key && t.dataset.key!=='clave'));
+    }
     applySoloAudio();
   });
   soloGroup.appendChild(btn);
@@ -762,7 +867,7 @@ function buildBand() {
     const next=D.sections[i+1]; const span=(next?next.beat_start:N)-sec.beat_start;
     const el=document.createElement('div');
     el.style.cssText=`width:${Math.ceil(span/BPB)*BAR_PX}px;height:100%;background:rgba(${SEC_COL[sec.label]||'80,80,80'},0.75);flex-shrink:0;cursor:pointer;`;
-    el.title=sec.label; el.addEventListener('click',()=>jumpTo(sec.beat_start)); secBandInner.appendChild(el);
+    el.title=secLabel(sec.label); el.addEventListener('click',()=>jumpTo(sec.beat_start)); secBandInner.appendChild(el);
   });
 }
 function buildTracks() {
@@ -815,7 +920,7 @@ function buildChips(){
     const chip=document.createElement('button');
     chip.className='sec-chip'; chip._ms=ms;
     chip.style.borderColor=`rgba(${col},0.4)`;
-    chip.innerHTML=`<span class="dot" style="background:rgb(${col})"></span>${ms.label}<span class="mno">m.${ms.bar}</span>`;
+    chip.innerHTML=`<span class="dot" style="background:rgb(${col})"></span>${secLabel(ms.label)}<span class="mno">m.${ms.bar}</span>`;
     chip.addEventListener('click',()=>toggleFocus(ms));
     sectionNav.appendChild(chip); chipEls.push(chip);
   });
@@ -868,8 +973,37 @@ function buildScore(d){
 }
 
 /* ── CONTROLS ─────────────────────────────── */
-playBtn.addEventListener('click',()=>playing?stopPlay():startPlay());
+playBtn.addEventListener('click',()=>{
+  if(playing){ stopPlay(); return; }
+  if(lastBeat<=0 && !focus) startWithCountIn(); else startPlay();   // décompte si on démarre du début
+});
 document.getElementById('restartBtn').addEventListener('click',()=>{jumpTo(focus?focus.start:0);if(playing)stopPlay();});
+// Toggle métronome (header)
+document.getElementById('metroBtn').addEventListener('click',()=>{ metroOn=!metroOn; document.getElementById('metroBtn').classList.toggle('on',metroOn); });
+// Saisie directe de la tête de lecture (souris + tactile)
+function beatFromClientX(clientX){
+  const rect=tracksScrollEl.getBoundingClientRect();
+  const tx=-Math.round(scrollX);
+  const rel=((clientX-rect.left)-tx)-LW;
+  if(rel<=0) return 0;
+  const bar=Math.floor(rel/BAR_PX);
+  let bib=Math.round((rel-bar*BAR_PX)/BEAT_PX); bib=Math.max(0,Math.min(BPB-1,bib));
+  return Math.max(0,Math.min(bar*BPB+bib,N-1));
+}
+function dragSeek(clientX){
+  const rect=tracksScrollEl.getBoundingClientRect();
+  dragX=Math.max(0, clientX-rect.left);
+  updateUI(beatFromClientX(clientX), 0);
+}
+tracksScrollEl.addEventListener('pointerdown',e=>{
+  dragging=true; tracksScrollEl.classList.add('grabbing');
+  try{tracksScrollEl.setPointerCapture(e.pointerId);}catch(_){}
+  dragSeek(e.clientX);
+});
+tracksScrollEl.addEventListener('pointermove',e=>{ if(dragging) dragSeek(e.clientX); });
+function endDrag(e){ if(!dragging) return; dragging=false; tracksScrollEl.classList.remove('grabbing'); try{tracksScrollEl.releasePointerCapture(e.pointerId);}catch(_){} jumpTo(beatFromClientX(e.clientX)); }
+tracksScrollEl.addEventListener('pointerup',endDrag);
+tracksScrollEl.addEventListener('pointercancel',endDrag);
 scrub.addEventListener('input',e=>jumpTo(parseInt(e.target.value)));
 scrub.addEventListener('change',e=>jumpTo(parseInt(e.target.value)));
 volSlider.addEventListener('input',e=>{if(gainNode) gainNode.gain.setTargetAtTime(parseFloat(e.target.value),getCtx().currentTime,0.01);});
@@ -1070,7 +1204,7 @@ function makeCard(t){
   const c=document.createElement('div'); c.className='lib-card'+(t._demo?' demo':'');
   const dur=Math.round(t.durationSec||0), mm=Math.floor(dur/60), ss=String(dur%60).padStart(2,'0');
   const audioUrl = t._demo ? 'MASTER_4_QUE_CALOR.m4a' : t.audioUrl;
-  c.innerHTML=`<h3>${escapeHtml(t.title)}</h3><div class="lib-meta"><span>${mm}:${ss} · ${t.bpm||'?'} BPM</span><span class="lib-badge">${t._demo?'analyse de référence':'analyse navigateur'}</span></div>`;
+  c.innerHTML=`<h3>${escapeHtml(t.title)}</h3><div class="lib-meta"><span>${mm}:${ss} · ${t.bpm||'?'} BPM</span></div>`;
   // Pré-écoute inline (n'ouvre pas la partition)
   if (audioUrl) {
     const pv=document.createElement('div'); pv.className='card-pv';
@@ -1253,6 +1387,7 @@ function applyIcons(){
   S('#expBtn', icon('copy',13)+' Patterns');
   S('#demoBtn', icon('rotate-ccw',13)+' Démo');
   S('#libAddBtn', icon('plus',16)+' Ajouter un morceau');
+  S('#metroBtn', icon('metronome',18));
   S('#dragOverlay .icon', icon('music',40));
 }
 
