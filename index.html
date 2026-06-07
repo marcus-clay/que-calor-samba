@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Que Calor</title>
+<title>Timbao Batucada Music</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -24,7 +24,7 @@ html, body {
   -webkit-font-smoothing: antialiased; overflow: hidden;
   touch-action: manipulation;
 }
-#app { display: none; flex-direction: column; height: 100vh; }
+#app { display: none; flex-direction: column; height: 100vh; height: 100dvh; }
 
 /* ── LOGIN ── */
 #loginView { display: none; position: fixed; inset: 0; z-index: 300; background: var(--bg); align-items: center; justify-content: center; }
@@ -37,7 +37,7 @@ html, body {
 #loginErr { font-size: 12px; color: var(--error); min-height: 16px; }
 
 /* ── BIBLIOTHÈQUE (Index) ── */
-#libView { display: flex; flex-direction: column; height: 100vh; }
+#libView { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
 #libHeader { flex-shrink: 0; display: flex; align-items: center; padding: 22px 16px 14px; gap: 12px; }
 #libHeader .lib-title h1 { font-size: 20px; font-weight: 800; }
 #libHeader .lib-title .sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
@@ -306,13 +306,53 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 #vol::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--mid); cursor: pointer; }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
+
+/* ── ICÔNES + FEEDBACK TACTILE ── */
+.ic { display: inline-block; vertical-align: middle; flex-shrink: 0; }
+#loadBtn, #editBtn, #expBtn, #demoBtn, #libAddBtn { display: inline-flex; align-items: center; gap: 6px; }
+button:active { transform: scale(0.97); }
+#playBtn:active { transform: scale(0.93); }
+.lib-card:active { transform: scale(0.99); }
+@media (hover: none) {
+  #loadBtn:hover, #editBtn:hover, #expBtn:hover, #demoBtn:hover, .lib-card:hover, .sec-chip:hover, .pv-btn:hover, #bpmBox button:hover { border-color: var(--border2); color: var(--mid); }
+}
+
+/* ── VIEWPORT MOBILE (≤ 600px) — pouce, Apple HIG ── */
+@media (max-width: 600px) {
+  /* Topbar compacte : titre tronqué, solo en défilement horizontal */
+  #topbar { gap: 8px; padding: 0 10px; }
+  .title-stack h1 { font-size: 14px; max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .title-stack .sub { display: none; }
+  #backBtn { width: 40px; height: 40px; }
+  .solo-group { overflow-x: auto; flex-wrap: nowrap; min-width: 0; -webkit-overflow-scrolling: touch; }
+  .solo-group::-webkit-scrollbar { height: 0; }
+  .solo-btn { height: 32px; padding: 0 11px; }
+  #secPill { display: none; }
+  /* Barre audio : ne garder que l'état ; actions secondaires masquées sur mobile */
+  #audioBar { height: 30px; padding: 0 10px; }
+  #legend, #editBtn, #expBtn, #demoBtn, #loadBtn, #bpmBox { display: none !important; }
+  #audioStatusText { font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Transport : gros play, scrub large, metro + volume masqués */
+  #transport { height: 64px; padding: 0 12px calc(env(safe-area-inset-bottom)) 12px; gap: 10px; }
+  #metro, .vol-wrap { display: none; }
+  #playBtn { width: 58px; height: 58px; }
+  #restartBtn { width: 44px; height: 44px; }
+  #posDisp { font-size: 15px; min-width: 50px; letter-spacing: 1px; }
+  .scrub-wrap { height: 36px; }
+  #scrub { height: 36px; }
+  #scrub::-webkit-slider-thumb { width: 22px; height: 22px; }
+  /* Bibliothèque : cartes plus grandes, pré-écoute confortable au pouce */
+  #libGrid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .pv-btn { width: 32px; height: 32px; }
+  #libAddBtn { height: 40px; }
+}
 </style>
 </head>
 <body>
 <!-- ÉCRAN LOGIN (mot de passe partagé) -->
 <div id="loginView">
   <div class="login-box">
-    <h1>Que Calor</h1>
+    <h1>Timbao Batucada Music</h1>
     <p>Bibliothèque partagée de l'orchestre</p>
     <input type="password" id="loginPw" placeholder="Mot de passe" autocomplete="current-password">
     <button id="loginBtn">Entrer</button>
@@ -323,9 +363,9 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 <!-- ÉCRAN BIBLIOTHÈQUE (Index) -->
 <div id="libView">
   <div id="libHeader">
-    <div class="lib-title"><h1>Que Calor</h1><span class="sub">Bibliothèque · Samba-Reggae</span></div>
+    <div class="lib-title"><h1>Timbao Batucada Music</h1><span class="sub">Bibliothèque · Samba-Reggae</span></div>
     <div class="spacer"></div>
-    <button id="libAddBtn">+ Ajouter un morceau</button>
+    <button id="libAddBtn">Ajouter un morceau</button>
   </div>
   <div id="libDrop"><div class="lib-drop-inner">Dépose un fichier audio, ou clique « Ajouter ». Il sera analysé (tempo, grille, sections).</div></div>
   <div id="libGrid"></div>
@@ -335,7 +375,7 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 <!-- ÉCRAN PARTITION -->
 <div id="app">
   <div id="topbar">
-    <button id="backBtn" title="Retour à la bibliothèque">←</button>
+    <button id="backBtn" title="Retour à la bibliothèque"></button>
     <div class="title-stack"><h1>Que Calor</h1><span class="sub">Samba-Reggae</span></div>
     <div class="solo-group"></div>
     <div class="spacer"></div>
@@ -351,10 +391,10 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
     <div id="legend"><i class="lg-rest"></i><span>silence</span><i class="lg-hit"></i><span>frappe</span><i class="lg-acc"></i><span>accent</span></div>
     <div class="spacer-sm"></div>
     <div id="bpmBox" class="hidden"><button id="bpmHalf">÷2</button><span id="bpmVal">—</span><span class="bpm-unit">BPM</span><button id="bpmDbl">×2</button></div>
-    <button id="demoBtn" style="display:none">↺ Démo</button>
-    <button id="expBtn" style="display:none">⧉ Copier les patterns</button>
-    <button id="editBtn">✏️ Éditer</button>
-    <button id="loadBtn">📂 Charger l'audio</button>
+    <button id="demoBtn" style="display:none">Démo</button>
+    <button id="expBtn" style="display:none">Copier les patterns</button>
+    <button id="editBtn">Éditer</button>
+    <button id="loadBtn">Charger l'audio</button>
     <input type="file" id="fileInput" accept="audio/*">
   </div>
 
@@ -372,8 +412,8 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
   </div>
 
   <div id="transport">
-    <button id="restartBtn">⏮</button>
-    <button id="playBtn">▶</button>
+    <button id="restartBtn"></button>
+    <button id="playBtn"></button>
     <div id="metro"></div>
     <div id="posDisp">001.1</div>
     <div class="scrub-wrap">
@@ -381,7 +421,7 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
       <input type="range" id="scrub" min="0" max="596" value="0" step="1">
     </div>
     <div class="vol-wrap">
-      <span id="volIcon">🔊</span>
+      <span id="volIcon"></span>
       <input type="range" id="vol" min="0" max="1" step="0.02" value="0.85">
     </div>
   </div>
@@ -390,7 +430,7 @@ body.editing .cell:hover { outline: 1.5px solid rgba(255,255,255,0.5); outline-o
 <!-- Drag & drop overlay -->
 <div id="dragOverlay">
   <div id="dragBox">
-    <div class="icon">🎵</div>
+    <div class="icon"></div>
     <div class="label">Dépose un fichier audio ici</div>
     <div class="hint">il sera analysé : tempo, grille, sections</div>
   </div>
@@ -426,6 +466,25 @@ let D = DEMO;          // partition courante (mutable : démo ou analyse navigat
 let N = D.n;
 let BT = D.beat_times;
 const PLAYHEAD_FRAC = 0.32;
+
+/* ── ICÔNES LUCIDE (SVG inline, sans dépendance) ── */
+const ICONS = {
+  'arrow-left':'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  'skip-back':'<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" x2="5" y1="19" y2="5"/>',
+  play:'<polygon points="6 3 20 12 6 21 6 3"/>',
+  pause:'<rect x="14" y="4" width="4" height="16" rx="1"/><rect x="6" y="4" width="4" height="16" rx="1"/>',
+  'volume-2':'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  'volume-x':'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+  pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  'rotate-ccw':'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  'trash-2':'<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>',
+  music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+};
+function icon(name, size=16){ return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`; }
 
 /* ── WEB AUDIO ──────────────────────────────── */
 let actx = null;
@@ -479,7 +538,7 @@ async function loadAudioBuffer(arrayBuffer) {
     const c = getCtx();
     audioBuffer = await c.decodeAudioData(arrayBuffer);
     setStatus('ok', `Audio chargé · ${(audioBuffer.duration/60).toFixed(1)} min — Prêt !`);
-    document.getElementById('loadBtn').textContent = '✓ Chargé';
+    document.getElementById('loadBtn').textContent = 'Chargé';
   } catch(e) {
     setStatus('err', 'Erreur de décodage — réessaie avec un autre format');
     audioBuffer = null;
@@ -628,7 +687,7 @@ function startPlay() {
     perfStart  = performance.now();
   }
 
-  playBtn.innerHTML = '⏸'; playBtn.classList.add('playing');
+  playBtn.innerHTML = icon('pause',22); playBtn.classList.add('playing');
   rafId = requestAnimationFrame(rafLoop);
 }
 
@@ -636,7 +695,7 @@ function stopPlay() {
   playing = false;
   if (audioSource) { try{audioSource.onended=null;audioSource.stop();}catch(e){} audioSource=null; }
   if (rafId) { cancelAnimationFrame(rafId); rafId=null; }
-  playBtn.innerHTML = '▶'; playBtn.classList.remove('playing');
+  playBtn.innerHTML = icon('play',22); playBtn.classList.remove('playing');
 }
 
 function jumpTo(bi) {
@@ -818,7 +877,7 @@ document.getElementById('volIcon').addEventListener('click',()=>{
   if(!gainNode) return;
   const muted=gainNode.gain.value===0;
   gainNode.gain.setTargetAtTime(muted?parseFloat(volSlider.value):0,getCtx().currentTime,0.01);
-  document.getElementById('volIcon').textContent=muted?'🔊':'🔇';
+  document.getElementById('volIcon').innerHTML=muted?icon('volume-2',16):icon('volume-x',16);
 });
 document.addEventListener('keydown',e=>{
   if(e.target.tagName==='INPUT')return;
@@ -955,7 +1014,7 @@ document.getElementById('bpmHalf').addEventListener('click',()=>reanalyzeBpm(D.t
 document.getElementById('bpmDbl').addEventListener('click',()=>reanalyzeBpm(D.tempo*2));
 demoBtn.addEventListener('click',()=>{
   lastAnalysis=null; buildScore(DEMO); setBpmUI(0,false); demoBtn.style.display='none';
-  document.getElementById('loadBtn').textContent="📂 Charger l'audio";
+  document.getElementById('loadBtn').textContent="Charger l'audio";
   setStatus('loading','Rechargement de la démo…');
   fetch('MASTER_4_QUE_CALOR.m4a').then(r=>r.ok?r.arrayBuffer():Promise.reject()).then(ab=>getCtx().decodeAudioData(ab))
     .then(b=>{audioBuffer=b;setStatus('ok','Démo Que Calor · analyse de référence');})
@@ -1015,7 +1074,7 @@ function makeCard(t){
   // Pré-écoute inline (n'ouvre pas la partition)
   if (audioUrl) {
     const pv=document.createElement('div'); pv.className='card-pv';
-    pv.innerHTML=`<button class="pv-btn" aria-label="Pré-écoute">▶</button><div class="pv-bar"><div class="pv-fill"></div></div>`;
+    pv.innerHTML=`<button class="pv-btn" aria-label="Pré-écoute">${icon('play',13)}</button><div class="pv-bar"><div class="pv-fill"></div></div>`;
     pv.addEventListener('click',e=>e.stopPropagation());
     const btn=pv.querySelector('.pv-btn'), bar=pv.querySelector('.pv-bar'), fill=pv.querySelector('.pv-fill');
     pvRefs[t.id]={btn,fill};
@@ -1024,33 +1083,29 @@ function makeCard(t){
     c.appendChild(pv);
   }
   c.addEventListener('click',()=>{ stopPreview(); openTrack(t.id); });
-  if(!t._demo){
-    const d=document.createElement('button'); d.className='del'; d.textContent='🗑'; d.title='Supprimer';
-    d.addEventListener('click',ev=>{ ev.stopPropagation(); if(confirm('Supprimer « '+t.title+' » ?')) apiDel(t.id).then(renderLibrary); });
-    c.appendChild(d);
-  }
   return c;
 }
 /* ── PRÉ-ÉCOUTE (lecteur inline sur les cartes) ── */
 const previewAudio = new Audio(); previewAudio.preload = 'none';
 let pvCurrent = null, pvRefs = {};
+const PV_PLAY = icon('play',13), PV_PAUSE = icon('pause',13);
 previewAudio.addEventListener('timeupdate', () => {
   const r = pvRefs[pvCurrent];
   if (r && previewAudio.duration) r.fill.style.width = (previewAudio.currentTime / previewAudio.duration * 100) + '%';
 });
 previewAudio.addEventListener('ended', () => {
-  const r = pvRefs[pvCurrent]; if (r) { r.btn.textContent = '▶'; r.fill.style.width = '0%'; } pvCurrent = null;
+  const r = pvRefs[pvCurrent]; if (r) { r.btn.innerHTML = PV_PLAY; r.fill.style.width = '0%'; } pvCurrent = null;
 });
-function stopPreview(){ if (!previewAudio.paused) previewAudio.pause(); const r = pvRefs[pvCurrent]; if (r) r.btn.textContent = '▶'; }
+function stopPreview(){ if (!previewAudio.paused) previewAudio.pause(); const r = pvRefs[pvCurrent]; if (r) r.btn.innerHTML = PV_PLAY; }
 function togglePreview(id, url, btn){
   if (pvCurrent === id) {
-    if (previewAudio.paused) { previewAudio.play().catch(()=>{}); btn.textContent = '⏸'; }
-    else { previewAudio.pause(); btn.textContent = '▶'; }
+    if (previewAudio.paused) { previewAudio.play().catch(()=>{}); btn.innerHTML = PV_PAUSE; }
+    else { previewAudio.pause(); btn.innerHTML = PV_PLAY; }
     return;
   }
-  const prev = pvRefs[pvCurrent]; if (prev) { prev.btn.textContent = '▶'; prev.fill.style.width = '0%'; }
+  const prev = pvRefs[pvCurrent]; if (prev) { prev.btn.innerHTML = PV_PLAY; prev.fill.style.width = '0%'; }
   pvCurrent = id; previewAudio.src = url; previewAudio.currentTime = 0;
-  previewAudio.play().catch(()=>{}); btn.textContent = '⏸';
+  previewAudio.play().catch(()=>{}); btn.innerHTML = PV_PAUSE;
 }
 function seekPreview(id, e, bar){
   if (pvCurrent !== id || !previewAudio.duration) return;
@@ -1110,7 +1165,7 @@ async function ingestFile(file){
   const drop=document.getElementById('libDrop'), inner=drop.querySelector('.lib-drop-inner');
   drop.classList.add('busy');
   try{
-    inner.textContent='Analyse de « '+file.name+' »… ⏳';
+    inner.textContent='Analyse de « '+file.name+' »…';
     const ab=await file.arrayBuffer();
     const buf=await getCtx().decodeAudioData(ab.slice(0));
     await new Promise(r=>requestAnimationFrame(()=>r()));
@@ -1155,7 +1210,7 @@ function setEditMode(on) {
   editMode = on;
   document.body.classList.toggle('editing', on);
   editBtn.classList.toggle('on', on);
-  editBtn.textContent = on ? '✓ Édition active' : '✏️ Éditer';
+  editBtn.innerHTML = on ? icon('check',13)+' Édition' : icon('pencil',13)+' Éditer';
   expBtn.style.display = on ? '' : 'none';
   if (on && playing) stopPlay();
   if (on) setStatus('ok', 'Édition : clic sur une case pour cycler repos → medium → accent');
@@ -1186,7 +1241,23 @@ expBtn.addEventListener('click', () => {
   console.log('beats =', json);
 });
 
-/* ── BOOTSTRAP : vérifie l'auth, sinon écran login ── */
+/* ── ICÔNES STATIQUES (posées au démarrage) ── */
+function applyIcons(){
+  const S=(sel,html)=>{const el=document.querySelector(sel); if(el) el.innerHTML=html;};
+  S('#backBtn', icon('arrow-left',18));
+  S('#restartBtn', icon('skip-back',16));
+  S('#playBtn', icon('play',22));
+  S('#volIcon', icon('volume-2',16));
+  S('#loadBtn', icon('upload',13)+" Charger l'audio");
+  S('#editBtn', icon('pencil',13)+' Éditer');
+  S('#expBtn', icon('copy',13)+' Patterns');
+  S('#demoBtn', icon('rotate-ccw',13)+' Démo');
+  S('#libAddBtn', icon('plus',16)+' Ajouter un morceau');
+  S('#dragOverlay .icon', icon('music',40));
+}
+
+/* ── BOOTSTRAP : accès ouvert, ouverture sur la bibliothèque ── */
+applyIcons();
 libView.style.display='none';
 renderLibrary().then(ok=>{ if(ok) showLib(); });
 </script>
