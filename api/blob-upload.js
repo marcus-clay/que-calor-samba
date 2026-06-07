@@ -5,7 +5,7 @@ import { validToken, getCookie } from '../lib/auth.js';
 // fonction, qui est limitée à 4,5 Mo de corps). Protégé par le cookie de session.
 export default async function handler(req, res) {
   if (req.method !== 'POST') { res.status(405).json({ error: 'method' }); return; }
-  if (!validToken(getCookie(req, 'qc_auth'))) { res.status(401).json({ error: 'unauthorized' }); return; }
+  // accès ouvert — mot de passe retiré
 
   let body = req.body;
   if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
