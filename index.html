@@ -323,6 +323,8 @@ button:active { transform: scale(0.97); }
 #metroBtn { width: 34px; height: 34px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--mid); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.1s; }
 #metroBtn:active { transform: scale(0.96); }
 #metroBtn.on { color: #0c0c0f; background: #d4a820; border-color: #d4a820; box-shadow: 0 0 12px rgba(212,168,32,0.5); }
+#metroTap { height: 34px; padding: 0 11px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--mid); font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; transition: transform 0.1s, border-color 0.15s, color 0.15s; }
+#metroTap:active { transform: scale(0.94); border-color: var(--text); color: var(--text); }
 
 /* ── DÉCOMPTE (count-in 2 mesures) ── */
 #countin { position: absolute; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; pointer-events: none; background: rgba(8,8,12,0.35); }
@@ -347,6 +349,7 @@ button:active { transform: scale(0.97); }
   .solo-group::-webkit-scrollbar { height: 0; }
   .solo-btn { height: 36px; padding: 0 13px; font-size: 11px; }
   #metroBtn { width: 40px; height: 40px; }
+  #metroTap { height: 40px; }
   #ciNum { font-size: 90px; }
   #secPill { display: none; }
   /* Barre audio : ne garder que l'état ; actions secondaires masquées sur mobile */
@@ -403,6 +406,7 @@ button:active { transform: scale(0.97); }
     <div class="solo-group"></div>
     <div class="spacer"></div>
     <button id="metroBtn" title="Métronome"></button>
+    <button id="metroTap" title="Taper le tempo">TAP</button>
     <div id="secPill">INTRO</div>
   </div>
 
@@ -672,9 +676,8 @@ let   cells          = {};
 
 function updateUI(bi, at) {
   if (bi !== lastBeat) {
-    if (playing && !dragging && !countinUntil && actx) {
-      if (soloedInst === 'clave') { const lv = D.beats.clave && D.beats.clave[bi]; if (lv && lv !== '0') playClick(lv); }
-      if (metroOn) playClick(bi % BPB === 0 ? '2' : '1');
+    if (playing && !dragging && !countinUntil && actx && soloedInst === 'clave') {
+      const lv = D.beats.clave && D.beats.clave[bi]; if (lv && lv !== '0') playClick(lv);
     }
     [...trailBeats, lastBeat].forEach(b => {
       if(b<0) return;
@@ -720,6 +723,12 @@ function rafLoop() {
       rafId = requestAnimationFrame(rafLoop); return;
     }
     countinUntil = 0; document.getElementById('countin').classList.remove('on'); lastBeat = -1;
+  }
+  // Métronome : clics réguliers au tempo tapé (indépendant de la grille détectée), programmés en avance
+  if (metroOn && actx) {
+    const period = 60 / (metroBpm || Math.round(D.tempo) || 120);
+    if (metroNext < actx.currentTime) { metroNext = actx.currentTime + 0.05; metroBeat = 0; }
+    while (metroNext < actx.currentTime + 0.15) { scheduleClick(metroNext, metroBeat % BPB === 0 ? '2' : '1'); metroNext += period; metroBeat++; }
   }
   const at = currentAudioPos();
   // Vue par section : on s'arrête en fin de section et on revient à son début (clock audio seul juge)
@@ -826,6 +835,7 @@ const tracksInner   = document.getElementById('tracksInner');
 const sectionNav    = document.getElementById('sectionNav');
 let soloedInst = null, mergedSecs = [], chipEls = [], allChip = null;
 let metroOn = false, countinUntil = 0, countinP = 0.5, dragging = false, dragX = 0;
+let metroBpm = 0, metroNext = 0, metroBeat = 0, tapTimes = [];
 
 // Metro dots (4 temps/mesure) — construits une seule fois
 const metroEl=document.getElementById('metro'); const mdots=[];
@@ -965,6 +975,7 @@ function buildScore(d){
   tracksInner.style.transform='translateX(0)'; rulerInner.style.transform='translateX(0)'; secBandInner.style.transform='translateX(0)';
   buildRuler(); buildBand(); buildTracks(); buildChips();
   soloedInst=null; applySoloAudio();
+  metroBpm = Math.round(D.tempo) || 120; updateMetroLabel();
   document.querySelectorAll('.solo-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('dimmed'));
   scrub.min=0; scrub.max=Math.max(1,N-1); scrub.value=0;
@@ -973,13 +984,25 @@ function buildScore(d){
 }
 
 /* ── CONTROLS ─────────────────────────────── */
-playBtn.addEventListener('click',()=>{
-  if(playing){ stopPlay(); return; }
-  if(lastBeat<=0 && !focus) startWithCountIn(); else startPlay();   // décompte si on démarre du début
-});
+playBtn.addEventListener('click',()=>{ playing?stopPlay():startPlay(); });
 document.getElementById('restartBtn').addEventListener('click',()=>{jumpTo(focus?focus.start:0);if(playing)stopPlay();});
-// Toggle métronome (header)
-document.getElementById('metroBtn').addEventListener('click',()=>{ metroOn=!metroOn; document.getElementById('metroBtn').classList.toggle('on',metroOn); });
+// Métronome : toggle + tap-tempo (BPM réglé à la main, indépendant de la grille détectée)
+function updateMetroLabel(){ const el=document.getElementById('metroTap'); if(el) el.textContent = metroBpm ? (metroBpm+' BPM') : 'TAP'; }
+function tapTempo(){
+  const now=performance.now();
+  tapTimes.push(now); tapTimes=tapTimes.filter(t=>now-t<2500);
+  if(tapTimes.length>=2){
+    let s=0; for(let i=1;i<tapTimes.length;i++) s+=tapTimes[i]-tapTimes[i-1];
+    const avg=s/(tapTimes.length-1);
+    metroBpm=Math.max(30,Math.min(300,Math.round(60000/avg)));
+    updateMetroLabel();
+  } else { updateMetroLabel(); }
+}
+document.getElementById('metroBtn').addEventListener('click',()=>{
+  metroOn=!metroOn; document.getElementById('metroBtn').classList.toggle('on',metroOn);
+  if(metroOn){ metroNext=0; if(!metroBpm) metroBpm=Math.round(D.tempo)||120; updateMetroLabel(); }
+});
+document.getElementById('metroTap').addEventListener('click', tapTempo);
 // Saisie directe de la tête de lecture (souris + tactile)
 function beatFromClientX(clientX){
   const rect=tracksScrollEl.getBoundingClientRect();
